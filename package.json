@@ -1,0 +1,30 @@
+{
+  "name": "llm-practice",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "A hands-on learning project for understanding how LLM agents and the models behind them work, built from scratch without agent frameworks.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meirakrish/llm-practice.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/meirakrish/llm-practice/issues"
+  },
+  "homepage": "https://github.com/meirakrish/llm-practice#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "undici-types": "^8.9.0"
+  }
+}
