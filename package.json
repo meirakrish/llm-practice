@@ -5,7 +5,7 @@
   "description": "A hands-on learning project for understanding how LLM agents and the models behind them work, built from scratch without agent frameworks.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --import tsx --test src/*.test.ts"
   },
   "repository": {
     "type": "git",
