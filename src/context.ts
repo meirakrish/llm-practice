@@ -18,3 +18,40 @@ export const estimateTokens = (messages: Message[], tools: ToolDefinition[]): nu
 
     return Math.ceil(text_length / divisor) + overhead
 }
+
+export const trimMessages = (messages: Message[], tools: ToolDefinition[], limit: number): Message[] => {
+    const resArray: Message[] = [...messages]
+
+    if (resArray.length < 4) {
+        return resArray
+    }
+
+    do {
+        const estimate: number = estimateTokens(resArray, tools);
+
+        if (estimate <= limit) {
+            break;
+        }
+
+        if (resArray.length === 3) {
+            break;
+        }
+
+        if (resArray[2]?.role === 'assistant' && resArray[2]?.tool_calls) {
+            const tcCount = resArray[2]?.tool_calls.length
+
+            if (resArray.length > (2 + 1 + tcCount)) {
+                resArray.splice(2, 1 + tcCount)
+            } else {
+                break;
+            }
+        } else {
+            resArray.splice(2, 1)
+        }
+
+
+    } while (true)
+
+
+    return resArray;
+}

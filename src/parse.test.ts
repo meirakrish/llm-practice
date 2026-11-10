@@ -73,8 +73,6 @@ describe('parseChatResponse: valid responses', () => {
 	test('prompt_eval_count read properly', () => {
 		const input = resp({ role: 'assistant', content: '' }, { prompt_eval_count: 999 })
 		const out = parseChatResponse(input)
-		console.log('in1',input)
-		console.log('out1',out)
 		assert.equal(out.prompt_eval_count, 999)
 	})
 
