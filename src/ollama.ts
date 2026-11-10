@@ -2,8 +2,9 @@ import { parseChatResponse } from './parse.js'
 import { type ChatResponse, type Message, type ToolDefinition } from './types.js'
 
 const model: string = "llama3.2:3b";
-const timeout: number = 10 * 1000;
 const url: string = "http://localhost:11434/api/chat";
+const timeout: number = 10 * 1000;
+export const contextWindow = 4096;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -107,13 +108,14 @@ export const chat = async (messages: Message[], tools: ToolDefinition[]): Promis
         model,
         messages,
         tools,
-        stream: false
+        stream: false,
+        options: { num_ctx: contextWindow }
     }
     const headers = { 'Content-Type': 'application/json' }
     const options: RequestInit = {
         method: 'POST',
         body: JSON.stringify(payload),
-        headers
+        headers,
     }
 
     const response: Response = await fetchWithRetry(url, options, 5)

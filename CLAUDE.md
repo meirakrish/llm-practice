@@ -50,7 +50,7 @@ npx tsc --noEmit            # type-check
 - `src/parse.ts`: `parseChatResponse` (runtime validation).
 - `src/parse.test.ts`: tests for the parser.
 - `src/context.ts`: `estimateTokens` (messages + tool definitions).
-- `src/calibrate.ts`: work in progress; compares estimates to real token counts.
+- `src/calibrate.ts`: compares estimated vs real prompt tokens for prose and JSON filler.
 - `FAILURES.md`: observed model/harness failures; each should become an eval in Phase 2.
 
 ## Known design decisions

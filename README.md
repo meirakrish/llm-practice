@@ -11,7 +11,8 @@ the models themselves.
 ## Status
 
 Currently in **Phase 1**, working on **context management**: token measurement and
-estimation are in place; calibrating the estimate and trimming come next.
+estimation are in place, the estimate is calibrated, and the window is set
+explicitly; trimming comes next.
 
 ## Roadmap
 
@@ -69,7 +70,7 @@ Prerequisites:
 ```bash
 npm install
 npx tsx src/main.ts         # runs the agent on a few sample questions
-npm run calibrate           # compares estimated vs real prompt tokens (WIP)
+npm run calibrate           # compares estimated vs real prompt tokens 
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
 ```
@@ -86,7 +87,7 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 | `src/parse.ts` | `parseChatResponse`, which validates the model's response at runtime |
 | `src/parse.test.ts` | Tests for `parseChatResponse` |
 | `src/context.ts` | `estimateTokens`: estimated prompt size (messages + tool definitions) |
-| `src/calibrate.ts` | WIP: compares estimates with the real `prompt_eval_count` |
+| `src/calibrate.ts` | compares estimates with the real `prompt_eval_count` |
 | `FAILURES.md` | Known model/harness failures observed so far |
 
 ## Notes for picking this up later
@@ -100,5 +101,10 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 - Small follow-up: add tests for the `id` and `index` checks in `parseChatResponse`.
 - `prompt_eval_count` counts only tokens Ollama processed fresh, not cached prefix
   tokens, so it undercounts the real context size on later turns. Trimming uses
-  `estimateTokens` instead; the estimate runs ~30% below the real count on turn 1
-  (template and tool-instruction overhead), so leave margin.
+  `estimateTokens` instead.
+- Calibration (`npm run calibrate`): fixed overhead (tools + template) is ~267 tokens.
+  Prose is ~4.3 chars/token, JSON-like text ~1.9. The estimator uses `chars / 3 + 25`:
+  it overcounts prose by ~20-33% and undercounts JSON by ~30%. Trim at about 60% of
+  the window, never at 100%.
+- The window is set explicitly in `ollama.ts` (`contextWindow`, sent as
+  `options.num_ctx`). It must be inside `options`; a top-level `num_ctx` is silently ignored.
