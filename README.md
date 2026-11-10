@@ -10,9 +10,8 @@ the models themselves.
 
 ## Status
 
-Currently in **Phase 1**, working on **context management**: token measurement and
-estimation are in place, the estimate is calibrated, and the window is set
-explicitly; trimming comes next.
+Currently in **Phase 1**. Context management is done (estimate, calibration,
+explicit window, trimming). Next up: **streaming**.
 
 ## Roadmap
 
@@ -23,8 +22,8 @@ Build the core agent loop by hand:
 - [x] A simple, explicit tool interface with input validation and guardrails
   (tool registry; each tool validates its own arguments and returns errors
   the model can read and recover from)
-- [ ] Context management: handle a growing conversation within the model's
-  context window
+- [x] Context management: handle a growing conversation within the model's
+  context window (token estimate, explicit `num_ctx`, trimming of old messages)
 - [x] Robustness: retries, malformed model output, and failure handling
   (server error bodies, per-attempt timeouts, retry with backoff for
   retryable failures only, runtime validation of model responses, unit tests)
@@ -86,7 +85,8 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 | `src/types.ts` | Shared types |
 | `src/parse.ts` | `parseChatResponse`, which validates the model's response at runtime |
 | `src/parse.test.ts` | Tests for `parseChatResponse` |
-| `src/context.ts` | `estimateTokens`: estimated prompt size (messages + tool definitions) |
+| `src/context.ts` | `estimateTokens` (messages + tool definitions) and `trimMessages` |
+| `src/context.test.ts` | Tests for `trimMessages` |
 | `src/calibrate.ts` | compares estimates with the real `prompt_eval_count` |
 | `FAILURES.md` | Known model/harness failures observed so far |
 
@@ -106,5 +106,10 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
   Prose is ~4.3 chars/token, JSON-like text ~1.9. The estimator uses `chars / 3 + 25`:
   it overcounts prose by ~20-33% and undercounts JSON by ~30%. Trim at about 60% of
   the window, never at 100%.
+- Trimming (`trimMessages` in `context.ts`, called from `runAgent`): drops the oldest
+  messages first. Always keeps the system prompt (index 0), the user's task (index 1)
+  and the newest message. An assistant message with `tool_calls` is dropped together
+  with its `tool` results. `runAgent` keeps the full history; only the copy sent to
+  the model is trimmed. No summarization yet: dropped messages are simply forgotten.
 - The window is set explicitly in `ollama.ts` (`contextWindow`, sent as
   `options.num_ctx`). It must be inside `options`; a top-level `num_ctx` is silently ignored.

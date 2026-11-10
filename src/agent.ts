@@ -1,7 +1,10 @@
 import { type ChatResponse, type Message, type ToolDefinition } from './types.js'
-import { chat } from './ollama.js'
+import { chat, contextWindow } from './ollama.js'
 import { executeTool, buildToolsArray } from './tools.js'
-import { estimateTokens } from './context.js'
+import { estimateTokens, trimMessages } from './context.js'
+
+
+const trimLimit = Math.floor(contextWindow * 0.6)
 
 
 export const runAgent = async (userInput: string): Promise<ChatResponse> => {
@@ -12,8 +15,16 @@ export const runAgent = async (userInput: string): Promise<ChatResponse> => {
     let i: number = 1;
 
     do {
-        const est_tokens = estimateTokens(messages, tools)
-        const cr: ChatResponse = await chat(messages, tools)
+
+        const trimmed: Message[] = trimMessages(messages, tools, trimLimit)
+        const est_tokens: number = estimateTokens(trimmed, tools)
+        const cr: ChatResponse = await chat(trimmed, tools)
+        const deltaTrimmed: number = messages.length - trimmed.length;
+
+        if (deltaTrimmed) {
+            console.log(`trimmed ${deltaTrimmed} lines`)
+        }
+
         if (cr.prompt_eval_count) {
             console.log(`turn number #${i}, prompt used ${cr.prompt_eval_count}, estimated:${est_tokens}`)
         }
