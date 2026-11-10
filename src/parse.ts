@@ -1,33 +1,8 @@
-export type Role = "system" | "user" | "assistant" | "tool"
+import { type ChatResponse, type ToolCall } from './types.js'
 
-export type ToolCall = {
-    id: string,
-    function: {
-        index: number,
-        name: string,
-        arguments: Record<string, unknown>
-    }
-}
-
-export type Message = {
-    role: Role,
-    content: string,
-    tool_name?: string,
-    tool_calls?: ToolCall[]
-}
-
-export type ChatResponse = {
-    message: Message,
-    model: string;
-    done: boolean;
-    done_reason: string;
-    eval_count: number;
-}
-
-export const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
+const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 
 export const parseChatResponse = (data: unknown): ChatResponse => {
-
     if (!isRecord(data)) {
         throw new Error('data is not an object - value: ' + typeof data)
     }
@@ -54,6 +29,10 @@ export const parseChatResponse = (data: unknown): ChatResponse => {
 
     if (data.message?.role !== 'assistant') {
         throw new Error('data.message.role value is not "assistant" - value: ' + data.message?.role)
+    }
+
+    if (typeof data.prompt_eval_count !== 'undefined' && data.prompt_eval_count !== null && typeof data.prompt_eval_count !== 'number') {
+        throw new Error('data.prompt_eval_count is not of number type - value: ' + typeof data.prompt_eval_count)
     }
 
     if (typeof data.message?.tool_calls === 'undefined' || data.message?.tool_calls === null) {
