@@ -8,23 +8,34 @@ Frameworks hide the interesting parts. This project builds each piece by hand
 to understand what a harness does and why, then goes one level deeper into
 the models themselves.
 
+## Status
+
+Currently in **Phase 1**. Next up: **context management**.
+
 ## Roadmap
 
 ### Phase 1: Agent harness from scratch
 Build the core agent loop by hand:
-- Send messages, parse tool calls, execute tools, feed results back,
-  and decide when to stop
-- A simple, explicit tool interface with input validation and guardrails
-- Context management: handle a growing conversation within the model's
+- [x] Send messages, parse tool calls, execute tools, feed results back,
+  and decide when to stop (loop with an iteration cap)
+- [x] A simple, explicit tool interface with input validation and guardrails
+  (tool registry; each tool validates its own arguments and returns errors
+  the model can read and recover from)
+- [ ] Context management: handle a growing conversation within the model's
   context window
-- Robustness: retries, malformed model output, and failure handling
-- Streaming responses
+- [x] Robustness: retries, malformed model output, and failure handling
+  (server error bodies, per-attempt timeouts, retry with backoff for
+  retryable failures only, runtime validation of model responses, unit tests)
+- [ ] Streaming responses
 
 ### Phase 2: Evals
 Measure the harness instead of guessing:
 - A small suite of tasks with clear success criteria
 - Track success rate, latency, and token usage
 - Compare the effect of prompt, tool-design, and model changes objectively
+
+Seed material: [FAILURES.md](FAILURES.md) logs observed failures, each written
+so it can become an eval case.
 
 ### Phase 3: Local models deep dive
 Run the same harness and evals across different models:
@@ -44,5 +55,38 @@ Build a tiny transformer to understand what's inside the box:
 - Competing with LangChain / agent SDKs
 
 ## Stack
+- TypeScript on Node 22, run with `tsx` (no build step)
 - Local models via [Ollama](https://ollama.com), so everything can be tested locally
-- Developed on WSL
+- Developed on WSL, with Ollama running on the Windows side
+
+## Running it
+
+Prerequisites:
+- Ollama running and the model pulled: `ollama pull llama3.2:3b`
+- From WSL, Ollama is reachable at `http://localhost:11434` (no extra setup was needed here)
+
+```bash
+npm install
+npx tsx src/step1-chat.ts   # runs the agent on a few sample questions
+npm test                    # unit tests (Node's built-in test runner)
+npx tsc --noEmit            # type-check; tsx does not do this for you
+```
+
+## Layout
+
+| File | What it holds |
+|---|---|
+| `src/step1-chat.ts` | The harness: tool registry, `fetchWithRetry`, `chat`, `executeTool`, `runAgent` loop |
+| `src/parse.ts` | Shared types and `parseChatResponse`, which validates the model's response at runtime |
+| `src/parse.test.ts` | Tests for `parseChatResponse` |
+| `FAILURES.md` | Known model/harness failures observed so far |
+
+## Notes for picking this up later
+- The model is `llama3.2:3b`. It is non-deterministic, so single runs prove little;
+  rates over many runs are the goal of Phase 2.
+- Validation checks the *shape* of tool arguments, not whether they make sense
+  (see F1 in `FAILURES.md`).
+- Open design question: should malformed model output (e.g. broken argument JSON)
+  be retried, or sent back to the model as an error message? Deferred to Phase 2,
+  where it can be measured.
+- Small follow-up: add tests for the `id` and `index` checks in `parseChatResponse`.
