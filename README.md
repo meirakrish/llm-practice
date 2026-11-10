@@ -10,7 +10,8 @@ the models themselves.
 
 ## Status
 
-Currently in **Phase 1**. Next up: **context management**.
+Currently in **Phase 1**, working on **context management**: token measurement and
+estimation are in place; calibrating the estimate and trimming come next.
 
 ## Roadmap
 
@@ -67,7 +68,8 @@ Prerequisites:
 
 ```bash
 npm install
-npx tsx src/step1-chat.ts   # runs the agent on a few sample questions
+npx tsx src/main.ts         # runs the agent on a few sample questions
+npm run calibrate           # compares estimated vs real prompt tokens (WIP)
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
 ```
@@ -76,9 +78,15 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 
 | File | What it holds |
 |---|---|
-| `src/step1-chat.ts` | The harness: tool registry, `fetchWithRetry`, `chat`, `executeTool`, `runAgent` loop |
-| `src/parse.ts` | Shared types and `parseChatResponse`, which validates the model's response at runtime |
+| `src/main.ts` | Entry point: runs the sample questions |
+| `src/agent.ts` | The `runAgent` loop |
+| `src/ollama.ts` | Ollama client: `fetchWithRetry`, `chat`, model/url/timeout |
+| `src/tools.ts` | Tool registry, `executeTool`, `buildToolsArray` |
+| `src/types.ts` | Shared types |
+| `src/parse.ts` | `parseChatResponse`, which validates the model's response at runtime |
 | `src/parse.test.ts` | Tests for `parseChatResponse` |
+| `src/context.ts` | `estimateTokens`: estimated prompt size (messages + tool definitions) |
+| `src/calibrate.ts` | WIP: compares estimates with the real `prompt_eval_count` |
 | `FAILURES.md` | Known model/harness failures observed so far |
 
 ## Notes for picking this up later
@@ -90,3 +98,7 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
   be retried, or sent back to the model as an error message? Deferred to Phase 2,
   where it can be measured.
 - Small follow-up: add tests for the `id` and `index` checks in `parseChatResponse`.
+- `prompt_eval_count` counts only tokens Ollama processed fresh, not cached prefix
+  tokens, so it undercounts the real context size on later turns. Trimming uses
+  `estimateTokens` instead; the estimate runs ~30% below the real count on turn 1
+  (template and tool-instruction overhead), so leave margin.
