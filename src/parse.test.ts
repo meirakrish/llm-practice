@@ -3,12 +3,13 @@ import assert from 'node:assert/strict'
 import { parseChatResponse } from './parse.js'
 
 // Build a full Ollama-style response around a message.
-const resp = <M>(message: M) => ({
+const resp = <M>(message: M, extra: Record<string, unknown> = {}) => ({
 	model: 'llama3.2:3b',
 	done: true,
 	done_reason: 'stop',
 	eval_count: 1,
 	message,
+	...extra,
 })
 
 const toolCall = (args: unknown, name: unknown = 'add') => ({
@@ -67,6 +68,20 @@ describe('parseChatResponse: valid responses', () => {
 		parseChatResponse(input)
 		// the original must still hold the raw string
 		assert.equal(input.message.tool_calls[0]?.function.arguments, '{"a":1,"b":2}')
+	})
+
+	test('prompt_eval_count read properly', () => {
+		const input = resp({ role: 'assistant', content: '' }, { prompt_eval_count: 999 })
+		const out = parseChatResponse(input)
+		console.log('in1',input)
+		console.log('out1',out)
+		assert.equal(out.prompt_eval_count, 999)
+	})
+
+	test('prompt_eval_count is not in the input', () => {
+		const input = resp({ role: 'assistant', content: ''})
+		const out = parseChatResponse(input)
+		assert.equal(out.prompt_eval_count, undefined)
 	})
 })
 
@@ -184,6 +199,18 @@ describe('parseChatResponse: invalid tool calls', () => {
 		assert.throws(
 			() => parseChatResponse(withCalls([toolCall({ a: 1 }), toolCall(null)])),
 			/tool_calls\[1\]\.function\.arguments is not an object/,
+		)
+	})
+})
+
+describe('parseChatResponse: invalid prompt_eval_count', () => {
+	test('prompt_eval_count not a number', () => {
+		const input = resp({ role: 'assistant', content: '' }, { prompt_eval_count: 'cow' })
+
+		assert.throws(
+			() =>
+			 parseChatResponse(input),
+			/prompt_eval_count is not of number type/,
 		)
 	})
 })

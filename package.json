@@ -5,7 +5,10 @@
   "description": "A hands-on learning project for understanding how LLM agents and the models behind them work, built from scratch without agent frameworks.",
   "main": "index.js",
   "scripts": {
-    "test": "node --import tsx --test src/*.test.ts"
+    "test": "node --import tsx --test src/*.test.ts",
+    "calibrate": "node --import tsx src/calibrate.ts",
+    "main": "node --import tsx src/main.ts",
+    "check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
