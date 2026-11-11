@@ -12,7 +12,7 @@ the models themselves.
 
 **Phase 1 is done**: agent loop, tools, robustness, context management and
 streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
-F1–F4 are working. Still open: a case for F6, retry vs. error-back for
+F1–F4 are working. Still open: retry vs. error-back for
 malformed output.
 
 ## Roadmap

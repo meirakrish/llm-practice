@@ -75,9 +75,10 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   wrote the call as text instead of a real tool call, and the JSON is
   malformed (missing `:`). 2 of 20 runs.
 - **Expected:** a real tool call, or at least a readable answer.
-- **Status:** open. Found by the `f3-exact-result` eval, which has no check
-  of its own for it. Related to the open question: retry malformed model
-  output, or send an error back to the model?
+- **Status:** open. Found by the `f3-exact-result` eval. Own eval:
+  `f6-call-as-text` (fails if the answer contains `"name"` or `"parameters"`).
+  Pass rate 90% (N=20). Related to the open question: retry malformed model
+  output, or send an error back to the model? Plan: try retrying.
 
 ## Notes
 - All results above are single runs unless stated. The model is

@@ -70,3 +70,14 @@ export const f4: EvalCase = {
         return { pass: false, reason: r.answer }
     }
 }
+// F6: the answer must not be a tool call written as plain text
+export const f6: EvalCase = {
+    id: 'f6-call-as-text',
+    input: 'what is 222.222 + 555.555 ?',
+    check: (r: RunResult) => {
+        if (r.answer.includes('"name"') || r.answer.includes('"parameters"')) {
+            return { pass: false, reason: r.answer }
+        }
+        return { pass: true, reason: r.answer }
+    }
+}
