@@ -17,6 +17,15 @@ Format: **Input** → **Observed** → **Expected** → **Status**
 - **Status:** open. The system prompt and parameter descriptions reduce it
   but do not remove it. Harness validation can't catch it because the values
   are well-formed numbers (shape is valid, meaning is not).
+- **Eval:** `f1-no-args` in `src/cases.ts`. Fails if any tool call has a
+  non-null argument (`null` args are rejected by validation, so they pass).
+  Pass rate over 3 × 20 runs each:
+  - old prompt ("If the user doesn't give both numbers, ask for them. Never
+    call a tool with made-up values."): 33% (20/60)
+  - new prompt ("when using the add tool, the user must give two input
+    numbers, otherwise, do not call the add tool; ask for the missing
+    numbers."): 68% (41/60)
+  - The remaining failures are mostly `1, 2` and `0, 0`, as numbers or strings.
 
 ### F2: sends numbers as strings
 - **Input:** e.g. `what is 222.222 + 555.555 ?`

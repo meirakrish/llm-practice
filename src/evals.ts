@@ -1,14 +1,15 @@
-import { f1, add } from './cases.js'
+import { f1, add, f2, f3, f4 } from './cases.js'
 import { type CaseReport, type EvalCase } from './types.js'
 import { runCase } from './runner.js'
 
-const cases: EvalCase[] = [f1, add];
+const cases: EvalCase[] = [f1];
+// const cases: EvalCase[] = [f1, add, f2, f3, f4];
 
 setTimeout(async () => {
     const reports: CaseReport[] = [];
 
     for (const ec of cases) {
-        const report: CaseReport = await runCase(ec, 5)
+        const report: CaseReport = await runCase(ec, 20)
         reports.push(report)
     }
 
