@@ -1,6 +1,6 @@
 import { type ChatResponse, type ToolCall } from './types.js'
 
-const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
+export const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 
 export const parseChatResponse = (data: unknown): ChatResponse => {
     if (!isRecord(data)) {

@@ -109,4 +109,3 @@ export const executeTool = (tc: ToolCall): string => {
 
     return `unknown tool ${name}`
 }
-
