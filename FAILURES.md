@@ -38,7 +38,13 @@ Format: **Input** → **Observed** → **Expected** → **Status**
 - **Input:** `what is 222.222 + 555.555 ?`
 - **Observed:** tool returned `777.777`; final answer said "approximately 777.78".
 - **Expected:** the exact tool result.
-- **Status:** open. Candidate eval: final answer must contain the tool output.
+- **Status:** mostly fixed. The root cause was the harness, not the model:
+  `222.222 + 555.555` is `777.7769999999999` in JS floating point, and `add`
+  returned that raw string, so the model rounded it in different ways.
+  `add` now returns `Number(sum.toPrecision(12)).toString()`.
+  Eval: `f3-exact-result` (answer must contain `777.777`). Pass rate 85% → 90%
+  (N=20); no rounding failures remain, the 2 failures left are F6.
+  `multiply` has the same float issue and no case yet.
 
 ### F4: ignores sequencing of dependent calls
 - **Input:** `what is 1 + 2, and then add 10 to that`
@@ -55,6 +61,17 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   model concluded the user had not given numbers and asked for them.
 - **Status:** mitigated by a more explicit error message that includes what
   was sent.
+
+### F6: writes the tool call as plain text
+- **Input:** `what is 222.222 + 555.555 ?`
+- **Observed:** the final answer is the text
+  `{"name":"add","parameters{"a": "222.222", "b": "555.555"}}`. The model
+  wrote the call as text instead of a real tool call, and the JSON is
+  malformed (missing `:`). 2 of 20 runs.
+- **Expected:** a real tool call, or at least a readable answer.
+- **Status:** open. Found by the `f3-exact-result` eval, which has no check
+  of its own for it. Related to the open question: retry malformed model
+  output, or send an error back to the model?
 
 ## Notes
 - All results above are single runs unless stated. The model is

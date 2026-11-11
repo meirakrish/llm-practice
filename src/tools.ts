@@ -57,7 +57,9 @@ export const registry = new Map<string, Tool>([
                 return pa_res.error
             }
 
-            return (pa_res.a + pa_res.b).toString()
+            const sum = pa_res.a + pa_res.b;
+            return Number(sum.toPrecision(12)).toString()
+            // return (pa_res.a + pa_res.b).toString()
         }
     }],
     ["multiply", {
