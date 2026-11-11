@@ -1,5 +1,5 @@
 import { type Message } from './types.js'
-import { fetchWithRetry, url, model, contextWindow, sleep } from './ollama.js'
+import { fetchWithRetry, url, model, contextWindow } from './ollama.js'
 import { isRecord } from './parse.js'
 
 
