@@ -53,7 +53,13 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   tool's result. Sometimes only one call is made and the model does the
   rest in its head.
 - **Expected:** call `add(1, 2)`, wait for `3`, then call `add(3, 10)`.
-- **Status:** open.
+- **Status:** open, but the outcome is mostly right. Eval: `f4-sequencing`
+  (answer must contain `13`). Pass rate 90% (N=20). A stricter version that
+  required two calls with the second using `3` scored 40%, because the model
+  usually computes `1 + 2` itself and makes one `add(3, 10)` call. The check
+  grades the outcome, so it can't tell tool use from mental arithmetic.
+  Real failures left: answers `4` (wrong call `add(1, 3)`) and `3` (stops
+  after the first step).
 
 ### F5: misreads a validation error
 - **Input:** a call rejected for string arguments

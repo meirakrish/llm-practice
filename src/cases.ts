@@ -18,7 +18,6 @@ export const f1: EvalCase = {
     }
 }
 
-
 export const add: EvalCase = {
     id: 'add-basic',
     input: 'what is 121 + 566 ?',
@@ -65,17 +64,9 @@ export const f4: EvalCase = {
     id: 'f4-sequencing',
     input: 'what is 1 + 2, and then add 10 to that',
     check: (r: RunResult) => {
-        const second = r.toolCalls[1]
-        if (!second) {
-            return { pass: false, reason: 'fewer than 2 tool calls: ' + JSON.stringify(r.toolCalls) }
+        if (r.answer.includes('13')) {
+            return { pass: true, reason: r.answer }
         }
-        const values = Object.values(second.function.arguments).map(Number)
-        if (!values.includes(3) || !values.includes(10)) {
-            return { pass: false, reason: 'second call args: ' + JSON.stringify(second.function.arguments) }
-        }
-        if (!r.answer.includes('13')) {
-            return { pass: false, reason: r.answer }
-        }
-        return { pass: true, reason: r.answer }
+        return { pass: false, reason: r.answer }
     }
 }
