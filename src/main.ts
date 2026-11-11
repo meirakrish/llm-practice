@@ -1,7 +1,6 @@
 import { runAgent } from './agent.js'
 import type { ChatResponse } from './types.js'
 
-
 const tests = [
 	'what is 121 + 566 ?',
 	'what is 222.222 + 555.555 ?',
@@ -12,11 +11,14 @@ const tests = [
 	//	'what is 55 * -11?'
 ]
 
+const onToken = (text: string): void => {
+	process.stdout.write(text)
+}
+
 setTimeout(async () => {
 	for (const message of tests) {
 		console.log('question:', message)
-		const chat_res: ChatResponse = await runAgent(message)
-		console.log('result:', chat_res.message.content)
-		console.log('-----------------------------------------------------------\n')
+		await runAgent(message, onToken)
+		console.log('\n-----------------------------------------------------------\n')
 	}
 }, 0)

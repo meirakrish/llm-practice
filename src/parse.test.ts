@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseChatResponse } from './parse.js'
+import { parseChatResponse, parseChatChunk } from './parse.js'
 
 // Build a full Ollama-style response around a message.
 const resp = <M>(message: M, extra: Record<string, unknown> = {}) => ({
@@ -209,6 +209,150 @@ describe('parseChatResponse: invalid prompt_eval_count', () => {
 			() =>
 			 parseChatResponse(input),
 			/prompt_eval_count is not of number type/,
+		)
+	})
+})
+
+// A streamed line: like a response, but only message and done are guaranteed.
+const chunk = (message: unknown, extra: Record<string, unknown> = {}) => ({
+	model: 'llama3.2:3b',
+	message,
+	done: false,
+	...extra,
+})
+
+describe('parseChatChunk: valid chunks', () => {
+	test('a content piece', () => {
+		const out = parseChatChunk(chunk({ role: 'assistant', content: ' we' }))
+
+		assert.equal(out.message.content, ' we')
+		assert.equal(out.message.role, 'assistant')
+		assert.equal(out.done, false)
+	})
+
+	test('empty content is valid', () => {
+		const out = parseChatChunk(chunk({ role: 'assistant', content: '' }))
+		assert.equal(out.message.content, '')
+	})
+
+	test('final chunk keeps done, done_reason and the counts', () => {
+		const out = parseChatChunk(
+			chunk({ role: 'assistant', content: '' }, { done: true, done_reason: 'stop', eval_count: 34, prompt_eval_count: 32 }),
+		)
+
+		assert.equal(out.done, true)
+		assert.equal(out.done_reason, 'stop')
+		assert.equal(out.eval_count, 34)
+		assert.equal(out.prompt_eval_count, 32)
+	})
+
+	test('optional fields are absent when the input has none', () => {
+		const out = parseChatChunk(chunk({ role: 'assistant', content: 'a' }))
+
+		assert.equal('eval_count' in out, false)
+		assert.equal('prompt_eval_count' in out, false)
+		assert.equal('done_reason' in out, false)
+		assert.equal('tool_calls' in out.message, false)
+	})
+
+	test('null counts are treated as absent', () => {
+		const out = parseChatChunk(chunk({ role: 'assistant', content: 'a' }, { eval_count: null, prompt_eval_count: null }))
+
+		assert.equal('eval_count' in out, false)
+		assert.equal('prompt_eval_count' in out, false)
+	})
+
+	test('a count of 0 is kept', () => {
+		const out = parseChatChunk(chunk({ role: 'assistant', content: '' }, { eval_count: 0 }))
+		assert.equal(out.eval_count, 0)
+	})
+
+	test('tool_calls are parsed', () => {
+		const out = parseChatChunk(
+			chunk({ role: 'assistant', content: '', tool_calls: [toolCall('{"a":1,"b":2}')] }),
+		)
+
+		assert.equal(out.message.tool_calls?.length, 1)
+		assert.deepEqual(out.message.tool_calls?.[0]?.function.arguments, { a: 1, b: 2 })
+	})
+
+	test('tool_calls null or [] are treated as absent', () => {
+		const a = parseChatChunk(chunk({ role: 'assistant', content: '', tool_calls: null }))
+		const b = parseChatChunk(chunk({ role: 'assistant', content: '', tool_calls: [] }))
+
+		assert.equal('tool_calls' in a.message, false)
+		assert.equal('tool_calls' in b.message, false)
+	})
+})
+
+describe('parseChatChunk: invalid chunks', () => {
+	test('data is not an object', () => {
+		assert.throws(() => parseChatChunk('hello'), /data is not an object/)
+		assert.throws(() => parseChatChunk(null), /data is not an object/)
+	})
+
+	test('message missing or not an object', () => {
+		assert.throws(() => parseChatChunk({ done: false }), /data.message is not an object/)
+		assert.throws(() => parseChatChunk(chunk('text')), /data.message is not an object/)
+	})
+
+	test('content missing or not a string', () => {
+		assert.throws(() => parseChatChunk(chunk({ role: 'assistant' })), /content is not of string type/)
+		assert.throws(() => parseChatChunk(chunk({ role: 'assistant', content: 5 })), /content is not of string type/)
+	})
+
+	test('role missing or not a string', () => {
+		assert.throws(() => parseChatChunk(chunk({ content: 'a' })), /role is not of string type/)
+		assert.throws(() => parseChatChunk(chunk({ role: 5, content: 'a' })), /role is not of string type/)
+	})
+
+	test('role is not "assistant"', () => {
+		assert.throws(() => parseChatChunk(chunk({ role: 'user', content: 'a' })), /role value is not assistant - value: user/)
+	})
+
+	test('done missing or not a boolean', () => {
+		assert.throws(
+			() => parseChatChunk({ message: { role: 'assistant', content: 'a' } }),
+			/done is not of boolean type/,
+		)
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: 'a' }, { done: 'yes' })),
+			/done is not of boolean type/,
+		)
+	})
+
+	test('eval_count not a number', () => {
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: '' }, { eval_count: '34' })),
+			/eval_count is not of number type/,
+		)
+	})
+
+	test('prompt_eval_count not a number', () => {
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: '' }, { prompt_eval_count: 'x' })),
+			/prompt_eval_count is not of number type/,
+		)
+	})
+
+	test('done_reason not a string', () => {
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: '' }, { done_reason: 1 })),
+			/done_reason is not of string type/,
+		)
+	})
+
+	test('tool_calls not an array', () => {
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: '', tool_calls: 'x' })),
+			/tool_calls is not an array/,
+		)
+	})
+
+	test('an invalid tool call is rejected', () => {
+		assert.throws(
+			() => parseChatChunk(chunk({ role: 'assistant', content: '', tool_calls: [null] })),
+			/tool_calls\[0\] is not an object/,
 		)
 	})
 })

@@ -10,8 +10,8 @@ the models themselves.
 
 ## Status
 
-Currently in **Phase 1**. Context management is done (estimate, calibration,
-explicit window, trimming). Next up: **streaming**.
+**Phase 1 is done**: agent loop, tools, robustness, context management and
+streaming. Next up: **Phase 2 (evals)**.
 
 ## Roadmap
 
@@ -27,7 +27,7 @@ Build the core agent loop by hand:
 - [x] Robustness: retries, malformed model output, and failure handling
   (server error bodies, per-attempt timeouts, retry with backoff for
   retryable failures only, runtime validation of model responses, unit tests)
-- [ ] Streaming responses
+- [x] Streaming responses (NDJSON line reader, chunk parser, idle timeout, `onToken` callback)
 
 ### Phase 2: Evals
 Measure the harness instead of guessing:
@@ -80,11 +80,14 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 |---|---|
 | `src/main.ts` | Entry point: runs the sample questions |
 | `src/agent.ts` | The `runAgent` loop |
-| `src/ollama.ts` | Ollama client: `fetchWithRetry`, `chat`, model/url/timeout |
+| `src/ollama.ts` | Ollama client: `fetchWithRetry`, `chat`, `chatStream`, model/url/timeouts |
 | `src/tools.ts` | Tool registry, `executeTool`, `buildToolsArray` |
 | `src/types.ts` | Shared types |
-| `src/parse.ts` | `parseChatResponse`, which validates the model's response at runtime |
-| `src/parse.test.ts` | Tests for `parseChatResponse` |
+| `src/parse.ts` | `parseChatResponse`, `parseChatChunk` and `parseToolCalls`, which validate model output at runtime |
+| `src/parse.test.ts` | Tests for `parseChatResponse` and `parseChatChunk` |
+| `src/stream.ts` | `readLines`: turns a byte stream into complete lines |
+| `src/stream.test.ts` | Tests for `readLines` (split lines, merged lines, UTF-8) |
+| `src/stream-demo.ts` | Throwaway demo of reading a raw stream |
 | `src/context.ts` | `estimateTokens` (messages + tool definitions) and `trimMessages` |
 | `src/context.test.ts` | Tests for `trimMessages` |
 | `src/calibrate.ts` | compares estimates with the real `prompt_eval_count` |
@@ -113,3 +116,8 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
   the model is trimmed. No summarization yet: dropped messages are simply forgotten.
 - The window is set explicitly in `ollama.ts` (`contextWindow`, sent as
   `options.num_ctx`). It must be inside `options`; a top-level `num_ctx` is silently ignored.
+- Streaming: Ollama sends one JSON object per line (NDJSON). Network reads do not
+  align with lines, so `readLines` buffers partial lines. The request timeout covers
+  only waiting for the response to start; after that, `chatStream` aborts if no chunk
+  arrives for `idleTimeout`. A timer that only runs while processing a chunk, or that
+  is started per chunk and never kept running during the wait, does not detect stalls.

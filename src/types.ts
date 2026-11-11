@@ -45,3 +45,15 @@ export type NumbersResult =
     | { ok: true; a: number; b: number }
     | { ok: false; error: string }
 
+
+export type ChatChunk = {
+    message: {
+        role: Role,
+        content: string,
+        tool_calls?: ToolCall[],
+    },
+    done: boolean,
+    done_reason?: string;
+    eval_count?: number,
+    prompt_eval_count?: number
+}

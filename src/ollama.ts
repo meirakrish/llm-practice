@@ -1,12 +1,14 @@
-import { parseChatResponse } from './parse.js'
-import { type ChatResponse, type Message, type ToolDefinition } from './types.js'
+import { parseChatChunk, parseChatResponse } from './parse.js'
+import { readLines } from './stream.js';
+import { type ChatChunk, type ChatResponse, type Message, type ToolCall, type ToolDefinition } from './types.js'
 
-const model: string = "llama3.2:3b";
-const url: string = "http://localhost:11434/api/chat";
+export const model: string = "llama3.2:3b";
+export const url: string = "http://localhost:11434/api/chat";
 const timeout: number = 10 * 1000;
+const idleTimeout: number = 30 * 1000;
 export const contextWindow = 4096;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts: number = 3): Promise<Response> => {
     let errorMessage: string = '';
@@ -14,12 +16,18 @@ export const fetchWithRetry = async (url: string, options: RequestInit, maxAttem
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         let retry: boolean = false, isError: boolean = false;
         let retryReason: string = '';
-        let duration: number, backoffMs: number;
-        const startTime: number = performance.now();
+        let backoffMs: number;
+        let timer: NodeJS.Timeout | undefined;
         errorMessage = '';
 
         try {
-            const response: Response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeout) })
+            const ctrl = new AbortController()
+            timer = setTimeout(() => {
+                ctrl.abort(new DOMException('timeout', 'TimeoutError'))
+            }, timeout)
+
+            const signal: AbortSignal = options.signal ? AbortSignal.any([options.signal, ctrl.signal]) : ctrl.signal;
+            const response: Response = await fetch(url, { ...options, signal })
             isError = response.ok !== true
 
             if (isError) {
@@ -63,7 +71,9 @@ export const fetchWithRetry = async (url: string, options: RequestInit, maxAttem
 
             errorMessage = `LLM Server Error: ${errorName} - ${err.message} - ${errorCause}`
         } finally {
-            duration = performance.now() - startTime;
+            if (timer) {
+                clearTimeout(timer)
+            }
         }
 
         if (retry) {
@@ -103,12 +113,12 @@ export const fetchWithRetry = async (url: string, options: RequestInit, maxAttem
     throw new Error(`MaxAttemptsError:${errorMessage}`)
 }
 
-export const chat = async (messages: Message[], tools: ToolDefinition[]): Promise<ChatResponse> => {
+const buildRequest = (messages: Message[], tools: ToolDefinition[], stream: boolean = false): RequestInit => {
     const payload = {
         model,
         messages,
         tools,
-        stream: false,
+        stream: stream,
         options: { num_ctx: contextWindow }
     }
     const headers = { 'Content-Type': 'application/json' }
@@ -117,9 +127,98 @@ export const chat = async (messages: Message[], tools: ToolDefinition[]): Promis
         body: JSON.stringify(payload),
         headers,
     }
+    return options
+}
 
+export const chat = async (messages: Message[], tools: ToolDefinition[]): Promise<ChatResponse> => {
+    const options: RequestInit = buildRequest(messages, tools, false)
     const response: Response = await fetchWithRetry(url, options, 5)
     const body = await response.json()
     const cr: ChatResponse = parseChatResponse(body)
+    return cr
+}
+
+const resetTimer = (timer: NodeJS.Timeout | undefined, ctrl: AbortController): NodeJS.Timeout => {
+    if (timer) {
+        clearTimeout(timer)
+    }
+
+    timer = setTimeout(() => {
+        ctrl.abort(new DOMException('idle timeout', 'TimeoutError'))
+    }, idleTimeout)
+
+    return timer
+}
+export const chatStream = async (messages: Message[], tools: ToolDefinition[], onToken: (text: string) => void): Promise<ChatResponse> => {
+    const ctrl: AbortController = new AbortController();
+    const signal: AbortSignal = ctrl.signal;
+    const chunkToolCalls: ToolCall[] = []
+    let timer: NodeJS.Timeout | undefined;
+    let chunkContent = ''
+    let lastChunk: ChatChunk | undefined = undefined;
+
+    try {
+        const options: RequestInit = { ...buildRequest(messages, tools, true), signal }
+        timer = resetTimer(timer, ctrl)
+        const response: Response = await fetchWithRetry(url, options, 5)
+        if (!response.body) {
+            throw new Error("response body is not defined")
+        }
+
+        for await (const chunk of readLines(response.body)) {
+            timer = resetTimer(timer, ctrl)
+            const data: unknown = JSON.parse(chunk);
+            const chatChunk = parseChatChunk(data)
+
+            const content = chatChunk.message.content
+            const toolCalls = chatChunk.message.tool_calls
+
+            if (content) {
+                onToken(content)
+                chunkContent += content
+            }
+
+            chunkToolCalls.push(...toolCalls || [])
+
+            if (chatChunk.done) {
+                lastChunk = chatChunk
+            }
+        }
+    } finally {
+        clearTimeout(timer)
+    }
+
+    if (!lastChunk) {
+        throw new Error('the stream ended early')
+    }
+
+    const cr: ChatResponse = {
+        message: {
+            role: 'assistant',
+            content: chunkContent,
+        },
+
+        model,
+        done: lastChunk.done,
+        done_reason: '',
+        eval_count: 0,
+    }
+
+    if (lastChunk.done_reason) {
+        cr.done_reason = lastChunk.done_reason
+    }
+
+    if (lastChunk.eval_count) {
+        cr.eval_count = lastChunk.eval_count
+    }
+
+    if (lastChunk.prompt_eval_count) {
+        cr.prompt_eval_count = lastChunk.prompt_eval_count
+    }
+
+    if (chunkToolCalls.length > 0) {
+        cr.message.tool_calls = chunkToolCalls
+    }
+
     return cr
 }
