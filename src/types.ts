@@ -57,3 +57,26 @@ export type ChatChunk = {
     eval_count?: number,
     prompt_eval_count?: number
 }
+
+export type RunResult = {
+    answer: string,
+    toolCalls: ToolCall[],
+    turns: number,
+    durationMs: number,
+    evalTokens: number
+}
+
+export type EvalCase = {
+    id: string,
+    input: string,
+    check: (r: RunResult) => { pass: boolean, reason: string }
+}
+
+export type CaseReport = {
+    id: string,
+    runs: number,
+    passes: number,
+    failures: string[],
+    avgDurationMs: number,
+    avgEvalTokens: number
+}

@@ -27,6 +27,7 @@ The owner is learning how LLM agents work by building a harness by hand.
 npm install
 npx tsx src/main.ts         # run the agent on sample questions
 npm run calibrate           # compare estimated vs real prompt tokens
+npm run evals               # run all eval cases 20x each, print summary (needs Ollama)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
 ```
@@ -55,12 +56,20 @@ npx tsc --noEmit            # type-check
 - `src/context.ts`: `estimateTokens` and `trimMessages`.
 - `src/context.test.ts`: tests for `trimMessages`.
 - `src/calibrate.ts`: compares estimated vs real prompt tokens for prose and JSON filler.
-- `FAILURES.md`: observed model/harness failures; each should become an eval in Phase 2.
+- `src/cases.ts`: eval cases (`f1`..`f4`, `add`); each has an `input` and a `check(RunResult)`.
+- `src/runner.ts`: `runCase(case, runs)` returns a `CaseReport`.
+- `src/evals.ts`: entry point for `npm run evals`; prints one summary line per case.
+- `FAILURES.md`: observed model/harness failures (F1-F6); each should become an eval.
 
 ## Known design decisions
 
 - Tool validation returns an error *string* to the model instead of throwing,
   so the model can read it and recover.
 - Validation checks shape, not meaning (see F1 in `FAILURES.md`).
-- Open question, deferred to Phase 2: retry malformed model output, or send the
-  error back to the model?
+- Open question, still open: retry malformed model output, or send the
+  error back to the model? (F6 is a live example.)
+- Evals: a thrown run counts as a failed run; runs are sequential (one local
+  model). Compare changes with pooled rates over several N=20 batches, and keep the
+  check fixed when comparing prompts. Checks grade outcomes where possible.
+- The system prompt must stay a single message at index 0 (`trimMessages` protects
+  indexes 0 and 1).
