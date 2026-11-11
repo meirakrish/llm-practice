@@ -90,8 +90,9 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   `what is 1 + 2, and then add 10 to that` (1 of 20).
 - **Observed:** the final answer is the empty string `''`.
 - **Expected:** a real answer.
-- **Status:** open. No dedicated eval yet; `f3` and `f4` catch it by accident.
-  Candidate fix: retry, as for F6.
+- **Status:** open. Eval: `f7-empty-reply` (answer must not be empty). qwen2.5:3b
+  scored 95% (19/20) in the first batch. `f3` and `f4` also catch it. Candidate
+  fix: retry, as for F6.
 
 ### F8: asks for numbers the user already gave
 - **Input:** `what is 1 + 2, and then add 10 to that`
