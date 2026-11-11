@@ -1,5 +1,5 @@
 import { runAgent } from './agent.js'
-import type { ChatResponse } from './types.js'
+// import type { ChatResponse } from './types.js'
 
 const tests = [
 	'what is 121 + 566 ?',
