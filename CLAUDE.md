@@ -70,9 +70,9 @@ npx tsc --noEmit            # type-check
 - Tool validation returns an error *string* to the model instead of throwing,
   so the model can read it and recover.
 - Validation checks shape, not meaning (see F1 in `FAILURES.md`).
-- Malformed model output (F6: a tool call written as text) is retried, up to
-  `maxRetries` (2) in `runAgent`, without adding the bad reply to the history.
-  Sending the error back to the model was not tried.
+- Malformed model output (F6: a tool call written as text) and empty replies (F7)
+  are retried, up to `maxRetries` (2, shared counter) in `runAgent`, without adding
+  the bad reply to the history. Sending the error back to the model was not tried.
 - Evals: a thrown run counts as a failed run; runs are sequential (one local
   model). Compare changes with pooled rates over several N=20 batches, and keep the
   check fixed when comparing prompts. Checks grade outcomes where possible.
