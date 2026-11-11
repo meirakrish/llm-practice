@@ -71,3 +71,12 @@ export type EvalCase = {
     input: string,
     check: (r: RunResult) => { pass: boolean, reason: string }
 }
+
+export type CaseReport = {
+    id: string,
+    runs: number,
+    passes: number,
+    failures: string[],
+    avgDurationMs: number,
+    avgEvalTokens: number
+}

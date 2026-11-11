@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --import tsx --test src/*.test.ts",
     "calibrate": "node --import tsx src/calibrate.ts",
+    "evals": "node --import tsx src/evals.ts",
     "main": "node --import tsx src/main.ts",
     "check": "tsc --noEmit"
   },
