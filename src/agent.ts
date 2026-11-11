@@ -22,26 +22,17 @@ export const runAgent = async (userInput: string, onToken: (text: string) => voi
     do {
 
         const trimmed: Message[] = trimMessages(messages, tools, trimLimit)
-        // const est_tokens: number = estimateTokens(trimmed, tools)
         const cr: ChatResponse = await chatStream(trimmed, tools, onToken)
-        // const deltaTrimmed: number = messages.length - trimmed.length;
 
-        // if (deltaTrimmed) {
-        //     console.log(`trimmed ${deltaTrimmed} lines`)
-        // }
-
-        // if (cr.prompt_eval_count) {
-        //     console.log(`turn number #${i}, prompt used ${cr.prompt_eval_count}, estimated:${est_tokens}`)
-        // }
         if (cr.eval_count) {
             allEvalCount += cr.eval_count
         }
 
         if (!cr.message.tool_calls) {
-            // if (looksLikeToolCall(cr.message.content) && retries < maxRetries) {
-            //     retries++;
-            //     continue;
-            // }
+            if (looksLikeToolCall(cr.message.content) && retries < maxRetries) {
+                retries++;
+                continue;
+            }
             const result: RunResult = {
                 answer: cr.message.content,
                 toolCalls: allToolCalls,

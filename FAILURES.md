@@ -83,6 +83,22 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   call. The bad reply is not added to the history. After: 100% (3 × 20 runs).
   Not measured: how often the retry fires (`RunResult` has no `retries` field).
 
+## qwen2.5:3b
+
+### F7: empty reply
+- **Input:** seen on `what is 222.222 + 555.555 ?` (2 of 20 runs) and
+  `what is 1 + 2, and then add 10 to that` (1 of 20).
+- **Observed:** the final answer is the empty string `''`.
+- **Expected:** a real answer.
+- **Status:** open. No dedicated eval yet; `f3` and `f4` catch it by accident.
+  Candidate fix: retry, as for F6.
+
+### F8: asks for numbers the user already gave
+- **Input:** `what is 1 + 2, and then add 10 to that`
+- **Observed:** answers like "Please provide the first number (1) and the second
+  number (2)", or a wrong result (`30`). Same family as F5.
+- **Status:** open. Seen in 3 of 20 f4 runs.
+
 ## Notes
 - All results above are single runs unless stated. The model is
   non-deterministic, so rates (N runs per case) are needed before drawing

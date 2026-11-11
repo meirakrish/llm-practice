@@ -76,7 +76,7 @@ export const registry = new Map<string, Tool>([
         },
         run: (args: Record<string, unknown>) => {
             const pa_res = parseArgs(args)
-            console.log('parseArgs:', pa_res)
+            // console.log('parseArgs:', pa_res)
 
             if (!pa_res.ok) {
                 return pa_res.error

@@ -28,6 +28,7 @@ npm install
 npx tsx src/main.ts         # run the agent on sample questions
 npm run calibrate           # compare estimated vs real prompt tokens
 npm run evals               # run all eval cases 20x each, print summary (needs Ollama)
+MODEL=qwen2.5:3b npm run evals   # same, with another Ollama model (default llama3.2:3b)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
 ```
@@ -61,7 +62,8 @@ npx tsc --noEmit            # type-check
 - `src/cases.ts`: eval cases (`f1`..`f4`, `add`); each has an `input` and a `check(RunResult)`.
 - `src/runner.ts`: `runCase(case, runs)` returns a `CaseReport`.
 - `src/evals.ts`: entry point for `npm run evals`; prints one summary line per case.
-- `FAILURES.md`: observed model/harness failures (F1-F6); each should become an eval.
+- `RESULTS.md`: eval results and the model comparison table.
+- `FAILURES.md`: observed model/harness failures (F1-F8); each should become an eval.
 
 ## Known design decisions
 
