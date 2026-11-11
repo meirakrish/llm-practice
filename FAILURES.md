@@ -75,10 +75,13 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   wrote the call as text instead of a real tool call, and the JSON is
   malformed (missing `:`). 2 of 20 runs.
 - **Expected:** a real tool call, or at least a readable answer.
-- **Status:** open. Found by the `f3-exact-result` eval. Own eval:
+- **Status:** mitigated. Found by the `f3-exact-result` eval. Own eval:
   `f6-call-as-text` (fails if the answer contains `"name"` or `"parameters"`).
-  Pass rate 90% (N=20). Related to the open question: retry malformed model
-  output, or send an error back to the model? Plan: try retrying.
+  Before: 90% (N=20, about 4 failures in 40 runs). Fix: `runAgent` retries the
+  request (up to `maxRetries = 2`) when the reply has no `tool_calls` but
+  `looksLikeToolCall` (in `src/malformed.ts`) says the text looks like a typed-out
+  call. The bad reply is not added to the history. After: 100% (3 × 20 runs).
+  Not measured: how often the retry fires (`RunResult` has no `retries` field).
 
 ## Notes
 - All results above are single runs unless stated. The model is

@@ -12,8 +12,8 @@ the models themselves.
 
 **Phase 1 is done**: agent loop, tools, robustness, context management and
 streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
-F1–F4 and F6 are working. Still open: retry vs. error-back for
-malformed output.
+F1–F4 and F6 are working. Malformed output (a tool call written as text) is
+now retried; sending the error back to the model instead was not tried.
 
 ## Roadmap
 
@@ -95,6 +95,8 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 | `src/context.ts` | `estimateTokens` (messages + tool definitions) and `trimMessages` |
 | `src/context.test.ts` | Tests for `trimMessages` |
 | `src/calibrate.ts` | compares estimates with the real `prompt_eval_count` |
+| `src/malformed.ts` | `looksLikeToolCall`: detects a tool call typed out as plain text |
+| `src/malformed.test.ts` | Tests for `looksLikeToolCall` |
 | `src/cases.ts` | Eval cases (`EvalCase`: an input plus a `check` that grades the `RunResult`) |
 | `src/runner.ts` | `runCase`: runs one case N times, returns a `CaseReport` |
 | `src/evals.ts` | Entry point for `npm run evals`: runs all cases and prints the summary |
@@ -105,9 +107,11 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
   rates over many runs are the goal of Phase 2.
 - Validation checks the *shape* of tool arguments, not whether they make sense
   (see F1 in `FAILURES.md`).
-- Open design question: should malformed model output (e.g. broken argument JSON)
-  be retried, or sent back to the model as an error message? Deferred to Phase 2,
-  where it can be measured.
+- Malformed output: when the reply has no `tool_calls` but its text looks like a
+  typed-out call (`looksLikeToolCall`: starts with `{` and contains `"name"`),
+  `runAgent` retries the same request, up to 2 times, without adding the bad reply
+  to the history. F6 went from ~90% to 100% (3 × 20 runs). Sending the error back to
+  the model instead was not tried.
 - Small follow-up: add tests for the `id` and `index` checks in `parseChatResponse`.
 - `prompt_eval_count` counts only tokens Ollama processed fresh, not cached prefix
   tokens, so it undercounts the real context size on later turns. Trimming uses
