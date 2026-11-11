@@ -44,11 +44,14 @@ npx tsc --noEmit            # type-check
 
 - `src/main.ts`: entry point; runs the sample questions.
 - `src/agent.ts`: the agent loop (`runAgent`).
-- `src/ollama.ts`: Ollama client (`fetchWithRetry`, `chat`, model/url/timeout).
+- `src/ollama.ts`: Ollama client (`fetchWithRetry`, `chat`, `chatStream`, model/url/timeouts).
 - `src/tools.ts`: tool registry, `executeTool`, `buildToolsArray`.
 - `src/types.ts`: shared types.
-- `src/parse.ts`: `parseChatResponse` (runtime validation).
-- `src/parse.test.ts`: tests for the parser.
+- `src/parse.ts`: `parseChatResponse`, `parseChatChunk`, `parseToolCalls` (runtime validation).
+- `src/parse.test.ts`: tests for the parsers.
+- `src/stream.ts`: `readLines` (byte stream to complete lines).
+- `src/stream.test.ts`: tests for `readLines`.
+- `src/stream-demo.ts`: throwaway demo of reading a raw stream.
 - `src/context.ts`: `estimateTokens` and `trimMessages`.
 - `src/context.test.ts`: tests for `trimMessages`.
 - `src/calibrate.ts`: compares estimated vs real prompt tokens for prose and JSON filler.

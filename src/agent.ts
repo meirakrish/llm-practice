@@ -1,5 +1,5 @@
 import { type ChatResponse, type Message, type ToolDefinition } from './types.js'
-import { chat, contextWindow } from './ollama.js'
+import { chatStream, contextWindow } from './ollama.js'
 import { executeTool, buildToolsArray } from './tools.js'
 import { estimateTokens, trimMessages } from './context.js'
 
@@ -7,7 +7,7 @@ import { estimateTokens, trimMessages } from './context.js'
 const trimLimit = Math.floor(contextWindow * 0.6)
 
 
-export const runAgent = async (userInput: string): Promise<ChatResponse> => {
+export const runAgent = async (userInput: string, onToken: (text: string) => void): Promise<ChatResponse> => {
     const tools: ToolDefinition[] = buildToolsArray();
     const messages: Message[] = [
         { role: 'system', content: 'If the user doesn’t give both numbers, ask for them. Never call a tool with made-up values.' },
@@ -18,7 +18,7 @@ export const runAgent = async (userInput: string): Promise<ChatResponse> => {
 
         const trimmed: Message[] = trimMessages(messages, tools, trimLimit)
         const est_tokens: number = estimateTokens(trimmed, tools)
-        const cr: ChatResponse = await chat(trimmed, tools)
+        const cr: ChatResponse = await chatStream(trimmed, tools, onToken)
         const deltaTrimmed: number = messages.length - trimmed.length;
 
         if (deltaTrimmed) {
