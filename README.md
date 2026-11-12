@@ -74,6 +74,7 @@ npm install
 npx tsx src/main.ts         # runs the agent on a few sample questions
 npm run calibrate           # compares estimated vs real prompt tokens 
 npm run evals               # runs every eval case 20 times and prints a summary (needs Ollama)
+MODEL=qwen2.5:3b npm run evals   # same, with another Ollama model
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
 ```
@@ -100,6 +101,7 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 | `src/cases.ts` | Eval cases (`EvalCase`: an input plus a `check` that grades the `RunResult`) |
 | `src/runner.ts` | `runCase`: runs one case N times, returns a `CaseReport` |
 | `src/evals.ts` | Entry point for `npm run evals`: runs all cases and prints the summary |
+| `RESULTS.md` | Eval results and the model comparison table |
 | `FAILURES.md` | Known model/harness failures observed so far |
 
 ## Notes for picking this up later

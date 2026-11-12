@@ -81,3 +81,15 @@ export const f6: EvalCase = {
         return { pass: true, reason: r.answer }
     }
 }
+
+// F7: the final answer must not be empty
+export const f7: EvalCase = {
+    id: 'f7-empty-reply',
+    input: 'what is 222.222 + 555.555 ?',
+    check: (r: RunResult) => {
+        if (r.answer.trim() === '') {
+            return { pass: false, reason: 'empty answer' }
+        }
+        return { pass: true, reason: r.answer }
+    }
+}
