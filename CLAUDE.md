@@ -28,7 +28,7 @@ npm install
 npx tsx src/main.ts         # run the agent on sample questions
 npm run calibrate           # compare estimated vs real prompt tokens
 npm run evals               # run all eval cases 20x each, print summary (needs Ollama)
-MODEL=qwen2.5:3b npm run evals   # same, with another Ollama model (default llama3.2:3b)
+MODEL=llama3.2:3b npm run evals   # same, with another Ollama model (default qwen2.5:3b)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
 ```
@@ -37,8 +37,12 @@ npx tsc --noEmit            # type-check
 
 - TypeScript on Node 22, strict tsconfig (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax`).
-- Ollama runs on Windows and is reachable from WSL at `http://localhost:11434`.
-  Model: `llama3.2:3b`.
+- Ollama runs on Windows only (there is no Ollama install inside WSL). WSL reaches it
+  at `http://localhost:11434` because WSL uses mirrored networking
+  (`networkingMode=mirrored` in `C:\Users\meira\.wslconfig`). In the default NAT mode,
+  `localhost` inside WSL is WSL itself and the connection is refused.
+- Models are pulled on the Windows side (`ollama pull <name>`). Default model:
+  `qwen2.5:3b`; also used: `llama3.2:3b`, `qwen3.5:9b`.
 - Types must be imported with `import type` / `import { type X }`, because
   `tsx` compiles files in isolation.
 
@@ -76,5 +80,11 @@ npx tsc --noEmit            # type-check
 - Evals: a thrown run counts as a failed run; runs are sequential (one local
   model). Compare changes with pooled rates over several N=20 batches, and keep the
   check fixed when comparing prompts. Checks grade outcomes where possible.
+- The system prompt depends on the model: `prompts` in `src/agent.ts` maps a model
+  name to its prompt, with `strictPrompt` as the default. Prompts tuned on one
+  model hurt another (see `RESULTS.md`). Keep concrete examples out of prompts.
+- Requests send `think: false` for every model (`buildRequest` in `src/ollama.ts`).
+  qwen3.5:9b is a thinking model: with thinking on it was slower, used ~2x the tokens
+  and sometimes returned empty content (see `RESULTS.md`).
 - The system prompt must stay a single message at index 0 (`trimMessages` protects
   indexes 0 and 1).

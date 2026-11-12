@@ -63,7 +63,8 @@ export type RunResult = {
     toolCalls: ToolCall[],
     turns: number,
     durationMs: number,
-    evalTokens: number
+    evalTokens: number,
+    retries: number
 }
 
 export type EvalCase = {

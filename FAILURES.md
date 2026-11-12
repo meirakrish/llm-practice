@@ -100,7 +100,14 @@ Format: **Input** → **Observed** → **Expected** → **Status**
 - **Input:** `what is 1 + 2, and then add 10 to that`
 - **Observed:** answers like "Please provide the first number (1) and the second
   number (2)", or a wrong result (`30`). Same family as F5.
-- **Status:** open. Seen in 3 of 20 f4 runs.
+- **Status:** mitigated for qwen. Eval: `f4-sequencing`. Cause: the system prompt
+  rule written to fix F1 ("ask for the missing numbers") made qwen ask for
+  numbers it already had. qwen f4: 75% (45/60) -> 100% (60/60) with a prompt
+  that adds "a number can also come from an earlier tool result"; f1 went from
+  100% to 92% (55/60). The same prompt hurts llama (f1 ~68% -> ~40%, f4 ~85% ->
+  ~70%), so `runAgent` picks the prompt by model (`prompts` in `src/agent.ts`).
+  An example inside the prompt ("add 10 to that") leaked into llama's tool
+  arguments (invented `10` and `20`), so the prompt has no concrete examples.
 
 ## Notes
 - All results above are single runs unless stated. The model is

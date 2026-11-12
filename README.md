@@ -15,7 +15,7 @@ streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
 F1–F4, F6 and F7 are working. Malformed output (a tool call written as text)
 and empty replies are retried; sending the error back to the model instead was
 not tried. **Phase 3 has started**: the same evals now run on `qwen2.5:3b` as well
-(see [RESULTS.md](RESULTS.md)).
+(see [RESULTS.md](RESULTS.md)), including `qwen3.5:9b` with thinking turned off.
 
 ## Roadmap
 
@@ -68,18 +68,62 @@ Build a tiny transformer to understand what's inside the box:
 ## Running it
 
 Prerequisites:
-- Ollama running and the model pulled: `ollama pull llama3.2:3b`
-- From WSL, Ollama is reachable at `http://localhost:11434` (no extra setup was needed here)
+- Ollama running and the model pulled: `ollama pull qwen2.5:3b` (the default model;
+  `llama3.2:3b` and `qwen3.5:9b` are also used)
+- Ollama runs on Windows. From WSL it is reachable at `http://localhost:11434` only
+  with mirrored networking (`networkingMode=mirrored` under `[wsl2]` in
+  `C:\Users\<you>\.wslconfig`, then `wsl --shutdown`). In the default NAT mode,
+  `localhost` inside WSL is WSL itself.
 
 ```bash
 npm install
 npx tsx src/main.ts         # runs the agent on a few sample questions
 npm run calibrate           # compares estimated vs real prompt tokens 
 npm run evals               # runs every eval case 20 times and prints a summary (needs Ollama)
-MODEL=qwen2.5:3b npm run evals   # same, with another Ollama model
+MODEL=llama3.2:3b npm run evals   # same, with another Ollama model
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
 ```
+
+### Loading and unloading models
+
+A model loads on its first request and is unloaded after 5 minutes idle. Loading it
+first keeps the load time out of the first eval case. A request without a `prompt`
+only loads (or unloads) the model:
+
+**Load** (keep for 30 minutes):
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"qwen2.5:3b","keep_alive":"30m"}'
+```
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"llama3.2:3b","keep_alive":"30m"}'
+```
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"qwen3.5:9b","keep_alive":"30m"}'
+```
+
+**Unload** (right away):
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"qwen2.5:3b","keep_alive":0}'
+```
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"llama3.2:3b","keep_alive":0}'
+```
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"qwen3.5:9b","keep_alive":0}'
+```
+
+- `ollama ps` (PowerShell) shows what is loaded and whether it runs on the GPU.
+- The 12 GB GPU does not fit the 9B model next to the small ones (the desktop also
+  uses VRAM). Unload the small models before running `qwen3.5:9b`.
+- In WSL's default NAT mode (no mirrored networking), use the Windows host instead of
+  `localhost`: `http://$(ip route show default | awk '{print $3}'):11434`.
 
 ## Layout
 
@@ -107,7 +151,7 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 | `FAILURES.md` | Known model/harness failures observed so far |
 
 ## Notes for picking this up later
-- The model is `llama3.2:3b`. It is non-deterministic, so single runs prove little;
+- The default model is `qwen2.5:3b` (set in `ollama.ts`, override with `MODEL`). It is non-deterministic, so single runs prove little;
   rates over many runs are the goal of Phase 2.
 - Validation checks the *shape* of tool arguments, not whether they make sense
   (see F1 in `FAILURES.md`).
@@ -151,5 +195,8 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
     scored differently from checking the outcome (e.g. "answer contains 13");
     F4 went from 40% to 90% by changing only the check.
   - The first case in a run pays the model's load time; its latency is inflated.
+- The system prompt is chosen per model (`prompts` in `agent.ts`). A prompt that fixed
+  qwen's F8 (f4 75% -> 100%) made llama worse (f1 ~68% -> ~40%), and an example inside a
+  prompt leaked into llama's tool arguments. Details in `RESULTS.md`.
 - Results so far (see `FAILURES.md`): F1 prompt change 33% -> ~68% pass; F3's float
   artifact (`777.7769999999999`) was a harness bug, fixed with `toPrecision(12)`.
