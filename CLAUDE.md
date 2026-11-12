@@ -59,7 +59,7 @@ npx tsc --noEmit            # type-check
 - `src/calibrate.ts`: compares estimated vs real prompt tokens for prose and JSON filler.
 - `src/malformed.ts`: `looksLikeToolCall` (reply text that looks like a typed-out tool call).
 - `src/malformed.test.ts`: tests for `looksLikeToolCall`.
-- `src/cases.ts`: eval cases (`f1`..`f4`, `add`); each has an `input` and a `check(RunResult)`.
+- `src/cases.ts`: eval cases (`add`, `f1`..`f4`, `f6`, `f7`); each has an `input` and a `check(RunResult)`.
 - `src/runner.ts`: `runCase(case, runs)` returns a `CaseReport`.
 - `src/evals.ts`: entry point for `npm run evals`; prints one summary line per case.
 - `RESULTS.md`: eval results and the model comparison table.

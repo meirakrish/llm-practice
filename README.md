@@ -12,8 +12,10 @@ the models themselves.
 
 **Phase 1 is done**: agent loop, tools, robustness, context management and
 streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
-F1–F4 and F6 are working. Malformed output (a tool call written as text) is
-now retried; sending the error back to the model instead was not tried.
+F1–F4, F6 and F7 are working. Malformed output (a tool call written as text)
+and empty replies are retried; sending the error back to the model instead was
+not tried. **Phase 3 has started**: the same evals now run on `qwen2.5:3b` as well
+(see [RESULTS.md](RESULTS.md)).
 
 ## Roadmap
 

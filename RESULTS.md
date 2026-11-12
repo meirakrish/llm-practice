@@ -16,6 +16,9 @@ Same harness, same system prompt (tuned on llama), 20 runs per case.
 | f3-exact-result | answer contains the exact sum `777.777` | **100%** | 90% |
 | f4-sequencing | `1 + 2, then add 10`: answer contains 13 | **85%** | 75% |
 | f6-call-as-text | answer is not a tool call written as text | 100% | 100% |
+| f7-empty-reply | answer is not empty | 100% | 100%* |
+
+\* qwen was 95% (95/100) before the empty-reply retry, 100% (100/100) after.
 
 f4 cost: llama 595 ms / 61 tokens per run; qwen 1242 ms / 144 tokens.
 
@@ -30,6 +33,12 @@ f4 cost: llama 595 ms / 61 tokens per run; qwen 1242 ms / 144 tokens.
 - The system prompt was tuned on llama, so this compares harness + prompt + model,
   not the bare models.
 - f6 at 100% for qwen may only mean qwen never produces that failure.
+
+## Effect of the retries (`runAgent`, up to 2, shared counter)
+- F6, tool call written as text (llama): ~90% -> 100% (3 x 20 runs).
+- F7, empty reply (qwen): 95/100 -> 100/100.
+- Not fixed by retry: F8 (qwen asks for numbers it already has; f4 stays at
+  ~75%). The reply is complete, just wrong.
 
 ## How to read a result
 - Compare pooled rates over several batches, not one batch.
