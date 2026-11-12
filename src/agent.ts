@@ -1,5 +1,5 @@
 import { type ChatResponse, type Message, type ToolDefinition, type RunResult, type ToolCall } from './types.js'
-import { chatStream, contextWindow } from './ollama.js'
+import { chatStream, contextWindow, model } from './ollama.js'
 import { executeTool, buildToolsArray } from './tools.js'
 import { trimMessages } from './context.js'
 import { looksLikeToolCall } from './malformed.js'
@@ -7,11 +7,14 @@ import { looksLikeToolCall } from './malformed.js'
 
 const trimLimit = Math.floor(contextWindow * 0.6)
 const maxRetries = 2
+const strictPrompt = 'when using the add tool,the user must give two input numbers, otherwise, do not call the add tool; ask for the missing numbers.'
+const flexiblePrompt = 'when using the add tool,the user must give two input numbers, if the user did not provide two input numbers, ask the user for the missing input, a number can also come from an earlier tool result'
+const prompts: Record<string, string> = { 'qwen2.5:3b': flexiblePrompt }
 
 export const runAgent = async (userInput: string, onToken: (text: string) => void): Promise<RunResult> => {
     const tools: ToolDefinition[] = buildToolsArray();
     const messages: Message[] = [
-        { role: 'system', content: 'when using the add tool,the user must give two input numbers, otherwise, do not call the add tool; ask for the missing numbers.' },
+        { role: 'system', content: prompts[model] ?? strictPrompt },
         { role: 'user', content: userInput }]
     let i: number = 1;
 
@@ -46,7 +49,8 @@ export const runAgent = async (userInput: string, onToken: (text: string) => voi
                 toolCalls: allToolCalls,
                 turns: i,
                 durationMs: performance.now() - start,
-                evalTokens: allEvalCount
+                evalTokens: allEvalCount,
+                retries
             }
 
             return result

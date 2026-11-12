@@ -2,7 +2,8 @@ import { parseChatChunk, parseChatResponse } from './parse.js'
 import { readLines } from './stream.js';
 import { type ChatChunk, type ChatResponse, type Message, type ToolCall, type ToolDefinition } from './types.js'
 
-export const model: string = process.env.MODEL ?? "llama3.2:3b";
+const defaultModel = 'qwen2.5:3b' //"llama3.2:3b"
+export const model: string = process.env.MODEL ?? defaultModel;
 export const url: string = "http://localhost:11434/api/chat";
 const timeout: number = 10 * 1000;
 const idleTimeout: number = 30 * 1000;
@@ -118,7 +119,8 @@ const buildRequest = (messages: Message[], tools: ToolDefinition[], stream: bool
         model,
         messages,
         tools,
-        stream: stream,
+        think: false,
+        stream,
         options: { num_ctx: contextWindow }
     }
     const headers = { 'Content-Type': 'application/json' }

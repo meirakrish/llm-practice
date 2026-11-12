@@ -3,13 +3,14 @@ import { type CaseReport, type EvalCase } from './types.js'
 import { runCase } from './runner.js'
 import { model } from './ollama.js'
 
-// const cases: EvalCase[] = [f7];
+// const cases: EvalCase[] = [f1, f4];
 const cases: EvalCase[] = [f1, add, f2, f3, f4, f6, f7];
 
 setTimeout(async () => {
     const reports: CaseReport[] = [];
-
-    for (const ec of cases) {
+    const totalCases = cases.length
+    for (const [index, ec] of cases.entries()) {
+        console.error(`=== case ${index + 1}/${totalCases}: ${ec.id} ===`)
         const report: CaseReport = await runCase(ec, 20)
         reports.push(report)
     }
