@@ -30,17 +30,25 @@ export const runAgent = async (userInput: string, onToken: (text: string) => voi
 
         if (!cr.message.tool_calls) {
             if (looksLikeToolCall(cr.message.content) && retries < maxRetries) {
+                // tool call sent as message
                 retries++;
                 continue;
             }
+
+            if (cr.message.content.trim() === '' && retries < maxRetries) {
+                // empty string
+                retries++;
+                continue;
+            }
+
             const result: RunResult = {
                 answer: cr.message.content,
                 toolCalls: allToolCalls,
                 turns: i,
                 durationMs: performance.now() - start,
                 evalTokens: allEvalCount
-
             }
+
             return result
         }
 

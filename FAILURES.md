@@ -90,9 +90,11 @@ Format: **Input** → **Observed** → **Expected** → **Status**
   `what is 1 + 2, and then add 10 to that` (1 of 20).
 - **Observed:** the final answer is the empty string `''`.
 - **Expected:** a real answer.
-- **Status:** open. Eval: `f7-empty-reply` (answer must not be empty). qwen2.5:3b
-  scored 95% (19/20) in the first batch. `f3` and `f4` also catch it. Candidate
-  fix: retry, as for F6.
+- **Status:** mitigated. Eval: `f7-empty-reply` (answer must not be empty).
+  Before: qwen2.5:3b 95/100 (5%). Fix: `runAgent` retries an empty reply
+  (up to `maxRetries`, sharing the counter with F6) without adding it to the
+  history. After: 100/100, plus 20/20 in a full-suite batch. At a 5% rate a
+  clean 100 runs happens ~0.6% of the time, so the retry works.
 
 ### F8: asks for numbers the user already gave
 - **Input:** `what is 1 + 2, and then add 10 to that`

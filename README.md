@@ -12,8 +12,10 @@ the models themselves.
 
 **Phase 1 is done**: agent loop, tools, robustness, context management and
 streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
-F1–F4 and F6 are working. Malformed output (a tool call written as text) is
-now retried; sending the error back to the model instead was not tried.
+F1–F4, F6 and F7 are working. Malformed output (a tool call written as text)
+and empty replies are retried; sending the error back to the model instead was
+not tried. **Phase 3 has started**: the same evals now run on `qwen2.5:3b` as well
+(see [RESULTS.md](RESULTS.md)).
 
 ## Roadmap
 
@@ -110,10 +112,11 @@ npx tsc --noEmit            # type-check; tsx does not do this for you
 - Validation checks the *shape* of tool arguments, not whether they make sense
   (see F1 in `FAILURES.md`).
 - Malformed output: when the reply has no `tool_calls` but its text looks like a
-  typed-out call (`looksLikeToolCall`: starts with `{` and contains `"name"`),
-  `runAgent` retries the same request, up to 2 times, without adding the bad reply
-  to the history. F6 went from ~90% to 100% (3 × 20 runs). Sending the error back to
-  the model instead was not tried.
+  typed-out call (`looksLikeToolCall`: starts with `{` and contains `"name"`), or is
+  empty, `runAgent` retries the same request, up to 2 times (shared counter),
+  without adding the bad reply to the history. F6 went from ~90% to 100% (3 × 20
+  runs); F7 (qwen) from 95% to 100% (N=100). Sending the error back to the model
+  instead was not tried.
 - Small follow-up: add tests for the `id` and `index` checks in `parseChatResponse`.
 - `prompt_eval_count` counts only tokens Ollama processed fresh, not cached prefix
   tokens, so it undercounts the real context size on later turns. Trimming uses
