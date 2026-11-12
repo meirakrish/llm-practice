@@ -9,7 +9,7 @@ const trimLimit = Math.floor(contextWindow * 0.6)
 const maxRetries = 2
 const strictPrompt = 'when using the add tool,the user must give two input numbers, otherwise, do not call the add tool; ask for the missing numbers.'
 const flexiblePrompt = 'when using the add tool,the user must give two input numbers, if the user did not provide two input numbers, ask the user for the missing input, a number can also come from an earlier tool result'
-const prompts: Record<string, string> = { 'qwen2.5:3b': flexiblePrompt }
+const prompts: Record<string, string> = { 'qwen2.5:3b': flexiblePrompt, 'qwen2.5:3b-instruct-q8_0': flexiblePrompt }
 
 export const runAgent = async (userInput: string, onToken: (text: string) => void): Promise<RunResult> => {
     const tools: ToolDefinition[] = buildToolsArray();

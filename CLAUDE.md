@@ -82,7 +82,8 @@ npx tsc --noEmit            # type-check
   check fixed when comparing prompts. Checks grade outcomes where possible.
 - The system prompt depends on the model: `prompts` in `src/agent.ts` maps a model
   name to its prompt, with `strictPrompt` as the default. Prompts tuned on one
-  model hurt another (see `RESULTS.md`). Keep concrete examples out of prompts.
+  model hurt another (see `RESULTS.md`). Keep concrete examples out of prompts. The key is the exact tag, so a quantization
+  variant (`qwen2.5:3b-instruct-q8_0`) needs its own entry.
 - Requests send `think: false` for every model (`buildRequest` in `src/ollama.ts`).
   qwen3.5:9b is a thinking model: with thinking on it was slower, used ~2x the tokens
   and sometimes returned empty content (see `RESULTS.md`).
