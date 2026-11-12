@@ -76,6 +76,25 @@ Default (strict) prompt, one batch of 20 runs per case, all on the GPU.
 
 - One batch per case: differences of 5% are noise.
 
+## Quantization: qwen2.5:3b Q4_K_M vs Q8_0, 2026-11-12
+Same flexible prompt, `think: false`, same harness. Q8 is `qwen2.5:3b-instruct-q8_0`
+(3 x 20 runs); Q4 is the default `qwen2.5:3b` (1 fresh batch of 20; f1 earlier 55/60).
+
+| case | Q4_K_M | Q8_0 |
+|---|---|---|
+| f1-no-args | 95% (earlier 92%) | **0% (0/60)** |
+| add-basic, f2, f3, f6, f7 | 100% | 100% |
+| f4-sequencing | 95% (earlier 100%) | 98% (59/60) |
+| f4 latency / tokens | ~0.9 s / ~106 | ~1.4-1.5 s / ~120 |
+
+- Q8 answers `what is + ?` with `add(1, 2)` or `add(1, 1)` almost every run: the
+  failures are near-identical, so it is a fixed habit, not noise.
+- More bits did not mean better here: the weights changed which instruction wins
+  (the tool-calling habit over the prompt rule). Everything else is equal within noise.
+- Q8 is ~1.5x slower (bigger weights to read per token).
+- Gotcha: `prompts` in `src/agent.ts` is keyed by the exact model tag, so each
+  quantization tag needs its own entry, or it silently gets `strictPrompt`.
+
 ## System prompt per model (f1 / f4, 3 x 20 runs each)
 Two prompts: `strictPrompt` ("...do not call the add tool; ask for the missing
 numbers") and `flexiblePrompt` (adds "a number can also come from an earlier tool
