@@ -80,6 +80,7 @@ npm install
 npx tsx src/main.ts         # runs the agent on a few sample questions
 npm run calibrate           # compares estimated vs real prompt tokens 
 npm run evals               # runs every eval case 20 times and prints a summary (needs Ollama)
+NUM_CTX=512 npm run evals          # same, with a smaller context window (default 4096)
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you

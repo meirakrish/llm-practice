@@ -95,6 +95,33 @@ Same flexible prompt, `think: false`, same harness. Q8 is `qwen2.5:3b-instruct-q
 - Gotcha: `prompts` in `src/agent.ts` is keyed by the exact model tag, so each
   quantization tag needs its own entry, or it silently gets `strictPrompt`.
 
+## Context window: qwen2.5:3b, `NUM_CTX` 128 to 4096, 2026-11-12
+One batch of 20 per size. Fixed overhead (system prompt + tool definitions + template)
+is ~267 tokens (`npm run calibrate`), before the question or any tool result.
+
+| `num_ctx` | result |
+|---|---|
+| 4096, 512, 384 | normal: same pass rates and tokens (~68 / ~105 per run) |
+| 256 | broken: add-basic, f3, f4, f7 0%; f2 55%, f6 60%. Loops (`MaxIterationsError`) and empty replies |
+| 128 | broken differently: f1 50%, add-basic 0%, f2 0%, f4 5%; f3, f6, f7 100% |
+
+- The cliff is between 256 and 384: the fixed overhead plus question and tool result
+  needs roughly 300-350 tokens.
+- A smaller window was **not faster**: runs got longer (loops, long rambling replies,
+  150-360 tokens instead of ~68). Speed is bound by reading the weights, not the context.
+- Nothing raised an error at any size: Ollama truncates the prompt silently, so it
+  looks like "the model got dumber".
+- At 128 the model invented parameter names (`x`/`y`, `operand1`) and, in f2, made no
+  tool call at all. A guess: the tool schema was cut.
+- f3, f6 and f7 stayed at 100% at 128 because they grade the answer, and the model
+  computed `777.777` itself without the tool. f2 (checks the process) caught it. Same
+  lesson as F4: outcome checks can't see that the tool was skipped.
+- `trimMessages` can't help: it never drops indexes 0 and 1, and trims at 60% of the window.
+- Guard in `runAgent` (`src/agent.ts`): if `estimateTokens(trimmed, tools) > contextWindow`
+  it throws before sending. At `NUM_CTX=256` every run fails at once with
+  `Estimate tokens is larger than contextWindow, 338>256`. The estimate is rough
+  (see README calibration), so it is a safety net, not exact.
+
 ## System prompt per model (f1 / f4, 3 x 20 runs each)
 Two prompts: `strictPrompt` ("...do not call the add tool; ask for the missing
 numbers") and `flexiblePrompt` (adds "a number can also come from an earlier tool
