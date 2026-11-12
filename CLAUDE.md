@@ -56,6 +56,8 @@ npx tsc --noEmit            # type-check
 - `src/context.ts`: `estimateTokens` and `trimMessages`.
 - `src/context.test.ts`: tests for `trimMessages`.
 - `src/calibrate.ts`: compares estimated vs real prompt tokens for prose and JSON filler.
+- `src/malformed.ts`: `looksLikeToolCall` (reply text that looks like a typed-out tool call).
+- `src/malformed.test.ts`: tests for `looksLikeToolCall`.
 - `src/cases.ts`: eval cases (`f1`..`f4`, `add`); each has an `input` and a `check(RunResult)`.
 - `src/runner.ts`: `runCase(case, runs)` returns a `CaseReport`.
 - `src/evals.ts`: entry point for `npm run evals`; prints one summary line per case.
@@ -66,8 +68,9 @@ npx tsc --noEmit            # type-check
 - Tool validation returns an error *string* to the model instead of throwing,
   so the model can read it and recover.
 - Validation checks shape, not meaning (see F1 in `FAILURES.md`).
-- Open question, still open: retry malformed model output, or send the
-  error back to the model? (F6 is a live example.)
+- Malformed model output (F6: a tool call written as text) is retried, up to
+  `maxRetries` (2) in `runAgent`, without adding the bad reply to the history.
+  Sending the error back to the model was not tried.
 - Evals: a thrown run counts as a failed run; runs are sequential (one local
   model). Compare changes with pooled rates over several N=20 batches, and keep the
   check fixed when comparing prompts. Checks grade outcomes where possible.
