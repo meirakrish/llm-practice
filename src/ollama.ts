@@ -4,10 +4,10 @@ import { type ChatChunk, type ChatResponse, type Message, type ToolCall, type To
 
 const defaultModel = 'qwen2.5:3b' //"llama3.2:3b"
 export const model: string = process.env.MODEL ?? defaultModel;
+export const contextWindow: number = parseInt(process.env.NUM_CTX || '4096')
 export const url: string = "http://localhost:11434/api/chat";
 const timeout: number = 10 * 1000;
 const idleTimeout: number = 30 * 1000;
-export const contextWindow = 4096;
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

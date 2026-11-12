@@ -1,7 +1,7 @@
 import { type ChatResponse, type Message, type ToolDefinition, type RunResult, type ToolCall } from './types.js'
 import { chatStream, contextWindow, model } from './ollama.js'
 import { executeTool, buildToolsArray } from './tools.js'
-import { trimMessages } from './context.js'
+import { trimMessages, estimateTokens } from './context.js'
 import { looksLikeToolCall } from './malformed.js'
 
 
@@ -25,6 +25,12 @@ export const runAgent = async (userInput: string, onToken: (text: string) => voi
     do {
 
         const trimmed: Message[] = trimMessages(messages, tools, trimLimit)
+
+        const et: number = estimateTokens(trimmed, tools)
+        if (et > contextWindow) {
+            throw new Error(`Estimate tokens is larger than contextWindow, ${et}>${contextWindow}`)
+        }
+
         const cr: ChatResponse = await chatStream(trimmed, tools, onToken)
 
         if (cr.eval_count) {

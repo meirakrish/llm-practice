@@ -28,6 +28,7 @@ npm install
 npx tsx src/main.ts         # run the agent on sample questions
 npm run calibrate           # compare estimated vs real prompt tokens
 npm run evals               # run all eval cases 20x each, print summary (needs Ollama)
+NUM_CTX=512 npm run evals   # smaller context window (default 4096)
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model (default qwen2.5:3b)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
@@ -87,5 +88,8 @@ npx tsc --noEmit            # type-check
 - Requests send `think: false` for every model (`buildRequest` in `src/ollama.ts`).
   qwen3.5:9b is a thinking model: with thinking on it was slower, used ~2x the tokens
   and sometimes returned empty content (see `RESULTS.md`).
+- `contextWindow` comes from `NUM_CTX` (default 4096). `runAgent` throws if the estimated
+  prompt is larger than the window: Ollama would otherwise truncate silently and the
+  model would just look worse (see `RESULTS.md`).
 - The system prompt must stay a single message at index 0 (`trimMessages` protects
   indexes 0 and 1).
