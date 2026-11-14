@@ -75,7 +75,7 @@ def estimate_loss(model, splits, batch_size, block_size, eval_iters):
             x, y = get_batch(value, batch_size, block_size)
             logits, loss = model(x, y)
             losses[k] = loss.item()
-        
+
         result[key] = losses.mean().item()
 
     model.train()
@@ -95,6 +95,15 @@ class MultiHeadAttention(nn.Module):
         outs = [head(x) for head in self.heads]
         out = torch.cat(outs, dim=-1)
         return self.proj(out)
+
+
+class FeedForward(nn.Module):
+    def __init__(self, n_embd):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(n_embd, n_embd), nn.ReLU())
+
+    def forward(self, x):
+        return self.net(x)
 
 
 class Head(nn.Module):
@@ -127,6 +136,7 @@ class BigramLanguageModel(nn.Module):
         self.sa_head = MultiHeadAttention(
             num_heads, n_embd // num_heads, n_embd, block_size
         )
+        self.ffwd = FeedForward(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
         self.block_size = block_size
 
@@ -136,7 +146,8 @@ class BigramLanguageModel(nn.Module):
         pos_emb = self.position_embedding_table(torch.arange(T))
         x = tok_emb + pos_emb
         res_sa = self.sa_head(x)
-        logits = self.lm_head(res_sa)
+        res_ff = self.ffwd(res_sa)
+        logits = self.lm_head(res_ff)
 
         if targets is None:
             loss = None
