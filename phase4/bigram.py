@@ -111,10 +111,12 @@ class Block(nn.Module):
         super().__init__()
         self.sa = MultiHeadAttention(num_heads, n_embd // num_heads, n_embd, block_size)
         self.ffwd = FeedForward(n_embd)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
 
     def forward(self, x):
-        x = x + self.sa(x)
-        x = x + self.ffwd(x)
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
         return x
 
 
@@ -148,6 +150,7 @@ class BigramLanguageModel(nn.Module):
         self.blocks = nn.Sequential(
             *[Block(n_embd, num_heads, block_size) for _ in range(num_layers)]
         )
+        self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
         self.block_size = block_size
 
@@ -157,6 +160,7 @@ class BigramLanguageModel(nn.Module):
         pos_emb = self.position_embedding_table(torch.arange(T))
         x = tok_emb + pos_emb
         x = self.blocks(x)
+        x = self.ln_f(x)
         logits = self.lm_head(x)
 
         if targets is None:
@@ -191,21 +195,14 @@ data = torch.tensor(encode(stoi, text), dtype=torch.long)
 n90 = floor(len(data) * 0.9)
 train_data = data[:n90]
 val_data = data[n90:]
-block_size = 8
+block_size = 32
 batch_size = 32
-n_embd = 32
+n_embd = 64
 num_heads = 4
 num_layers = 4
 eval_iters = 200
 
-# print("n90", n90)
-# print("vocabulary size:", vocab_size)
 print("decode test:", decode(itos, encode(stoi, text)) == text)
-# print("data.shape", data.shape)
-# print("data.dtype", data.dtype)
-# print("train_data length", len(train_data))
-# print("val_data length", len(val_data))
-
 model = BigramLanguageModel(vocab_size, n_embd, block_size, num_heads, num_layers)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 x, y = get_batch(train_data, batch_size, block_size)
@@ -236,9 +233,3 @@ idx = torch.zeros((1, 1), dtype=torch.long)
 generated = model.generate(idx, 300)
 decoded = decode(itos, generated[0].tolist())
 print("generated:", decoded)
-
-
-# head
-# head = Head(32, 16, block_size)
-# hdata = head(torch.randn(4, 8, 32))
-# print("hdata.shape", hdata.shape)
