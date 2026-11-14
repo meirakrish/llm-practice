@@ -106,6 +106,18 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 
+class Block(nn.Module):
+    def __init__(self, n_embd, num_heads, block_size):
+        super().__init__()
+        self.sa = MultiHeadAttention(num_heads, n_embd // num_heads, n_embd, block_size)
+        self.ffwd = FeedForward(n_embd)
+
+    def forward(self, x):
+        x = x + self.sa(x)
+        x = x + self.ffwd(x)
+        return x
+
+
 class Head(nn.Module):
     def __init__(self, n_embd, head_size, block_size):
         super().__init__()
@@ -129,14 +141,13 @@ class Head(nn.Module):
 
 
 class BigramLanguageModel(nn.Module):
-    def __init__(self, vocab_size, n_embd, block_size, num_heads):
+    def __init__(self, vocab_size, n_embd, block_size, num_heads, num_layers):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.sa_head = MultiHeadAttention(
-            num_heads, n_embd // num_heads, n_embd, block_size
+        self.blocks = nn.Sequential(
+            *[Block(n_embd, num_heads, block_size) for _ in range(num_layers)]
         )
-        self.ffwd = FeedForward(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
         self.block_size = block_size
 
@@ -145,9 +156,8 @@ class BigramLanguageModel(nn.Module):
         tok_emb = self.token_embedding_table(idx)
         pos_emb = self.position_embedding_table(torch.arange(T))
         x = tok_emb + pos_emb
-        res_sa = self.sa_head(x)
-        res_ff = self.ffwd(res_sa)
-        logits = self.lm_head(res_ff)
+        x = self.blocks(x)
+        logits = self.lm_head(x)
 
         if targets is None:
             loss = None
@@ -185,6 +195,7 @@ block_size = 8
 batch_size = 32
 n_embd = 32
 num_heads = 4
+num_layers = 4
 eval_iters = 200
 
 # print("n90", n90)
@@ -195,7 +206,7 @@ print("decode test:", decode(itos, encode(stoi, text)) == text)
 # print("train_data length", len(train_data))
 # print("val_data length", len(val_data))
 
-model = BigramLanguageModel(vocab_size, n_embd, block_size, num_heads)
+model = BigramLanguageModel(vocab_size, n_embd, block_size, num_heads, num_layers)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 x, y = get_batch(train_data, batch_size, block_size)
 logits, loss = model(x, y)
