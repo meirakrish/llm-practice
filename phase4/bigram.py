@@ -75,10 +75,26 @@ def estimate_loss(model, splits, batch_size, block_size, eval_iters):
             x, y = get_batch(value, batch_size, block_size)
             logits, loss = model(x, y)
             losses[k] = loss.item()
-            result[key] = losses.mean().item()
+        
+        result[key] = losses.mean().item()
 
     model.train()
     return result
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, num_heads, head_size, n_embd, block_size):
+        super().__init__()
+        self.heads = nn.ModuleList(
+            [Head(n_embd, head_size, block_size) for _ in range(num_heads)]
+        )
+
+        self.proj = nn.Linear(num_heads * head_size, n_embd)
+
+    def forward(self, x):
+        outs = [head(x) for head in self.heads]
+        out = torch.cat(outs, dim=-1)
+        return self.proj(out)
 
 
 class Head(nn.Module):
@@ -104,11 +120,13 @@ class Head(nn.Module):
 
 
 class BigramLanguageModel(nn.Module):
-    def __init__(self, vocab_size, n_embd, block_size):
+    def __init__(self, vocab_size, n_embd, block_size, num_heads):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.sa_head = Head(n_embd, n_embd, block_size)
+        self.sa_head = MultiHeadAttention(
+            num_heads, n_embd // num_heads, n_embd, block_size
+        )
         self.lm_head = nn.Linear(n_embd, vocab_size)
         self.block_size = block_size
 
@@ -155,6 +173,7 @@ val_data = data[n90:]
 block_size = 8
 batch_size = 32
 n_embd = 32
+num_heads = 4
 eval_iters = 200
 
 # print("n90", n90)
@@ -165,7 +184,7 @@ print("decode test:", decode(itos, encode(stoi, text)) == text)
 # print("train_data length", len(train_data))
 # print("val_data length", len(val_data))
 
-model = BigramLanguageModel(vocab_size, n_embd, block_size)
+model = BigramLanguageModel(vocab_size, n_embd, block_size, num_heads)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 x, y = get_batch(train_data, batch_size, block_size)
 logits, loss = model(x, y)
