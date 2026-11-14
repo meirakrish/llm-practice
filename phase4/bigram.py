@@ -63,6 +63,24 @@ def get_batch(data, batch_size, block_size):
     return x, y
 
 
+@torch.no_grad()
+def estimate_loss(model, splits, batch_size, block_size, eval_iters):
+    model.eval()
+    result = {}
+
+    for key, value in splits.items():
+        losses = torch.zeros(eval_iters)
+
+        for k in range(eval_iters):
+            x, y = get_batch(value, batch_size, block_size)
+            logits, loss = model(x, y)
+            losses[k] = loss.item()
+            result[key] = losses.mean().item()
+
+    model.train()
+    return result
+
+
 class Head(nn.Module):
     def __init__(self, n_embd, head_size, block_size):
         super().__init__()
@@ -137,6 +155,7 @@ val_data = data[n90:]
 block_size = 8
 batch_size = 32
 n_embd = 32
+eval_iters = 200
 
 # print("n90", n90)
 # print("vocabulary size:", vocab_size)
@@ -153,6 +172,10 @@ logits, loss = model(x, y)
 
 
 # training loop
+el_before = estimate_loss(
+    model, {"train": train_data, "val": val_data}, batch_size, block_size, eval_iters
+)
+print("estimate_loss before training", el_before)
 print("loss before training", loss.item())
 for i in range(10000):
     x, y = get_batch(train_data, batch_size, block_size)
@@ -161,6 +184,10 @@ for i in range(10000):
     loss.backward()
     optimizer.step()
 print("loss after training", loss.item())
+el_after = estimate_loss(
+    model, {"train": train_data, "val": val_data}, batch_size, block_size, eval_iters
+)
+print("estimate_loss after training", el_after)
 
 
 # generate
