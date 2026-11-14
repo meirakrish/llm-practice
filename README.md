@@ -53,9 +53,12 @@ Run the same harness and evals across different models:
 
 ### Phase 4: Model internals
 Build a tiny transformer to understand what's inside the box:
-- Tokenizer, embeddings, attention, and the training loop
-- Train a small model on a toy dataset
-- Connect what's learned back to the harness behavior seen in phases 1–3
+- [x] Tokenizer, embeddings, attention, and the training loop
+  (`phase4/bigram.py`: character tokenizer, batches, multi-head attention, blocks
+  with residuals and LayerNorm, loss, training, sampling)
+- [x] Train a small model on a toy dataset (tiny Shakespeare, 1.77 val loss on CPU;
+  every step is measured in [RESULTS.md](RESULTS.md))
+- [ ] Connect what's learned back to the harness behavior seen in phases 1–3
 
 ## Non-goals
 - Being a production framework
@@ -85,6 +88,18 @@ NUM_CTX=512 npm run evals          # same, with a smaller context window (defaul
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
+```
+
+### Phase 4 (Python)
+Needs Python 3 and PyTorch (CPU is enough). The venv and the data are git-ignored.
+
+```bash
+cd phase4
+python3 -m venv .venv && source .venv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+curl -o input.txt https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+python bigram.py            # trains for 10,000 steps (~4 min on CPU), prints losses and a sample
+python attention_demo.py    # the standalone self-attention demo
 ```
 
 ### Loading and unloading models
