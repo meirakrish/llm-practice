@@ -32,6 +32,9 @@ NUM_CTX=512 npm run evals   # smaller context window (default 4096)
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model (default qwen2.5:3b)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
+
+# Phase 4 (Python, venv in phase4/.venv, data in phase4/input.txt, both git-ignored)
+cd phase4 && source .venv/bin/activate && python bigram.py   # ~4 min on CPU
 ```
 
 ## Environment
@@ -69,6 +72,9 @@ npx tsc --noEmit            # type-check
 - `src/evals.ts`: entry point for `npm run evals`; prints one summary line per case.
 - `RESULTS.md`: eval results and the model comparison table.
 - `FAILURES.md`: observed model/harness failures (F1-F8); each should become an eval.
+- `phase4/bigram.py`: tiny character-level transformer: tokenizer, `get_batch`, `estimate_loss`,
+  `Head`, `MultiHeadAttention`, `FeedForward`, `Block`, the model, training loop and generation.
+- `phase4/attention_demo.py`: standalone demo of self-attention (averaging, tril, softmax, q/k/v).
 
 ## Known design decisions
 

@@ -83,34 +83,39 @@ def estimate_loss(model, splits, batch_size, block_size, eval_iters):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads, head_size, n_embd, block_size):
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
         super().__init__()
         self.heads = nn.ModuleList(
-            [Head(n_embd, head_size, block_size) for _ in range(num_heads)]
+            [Head(n_embd, head_size, block_size, dropout) for _ in range(num_heads)]
         )
 
         self.proj = nn.Linear(num_heads * head_size, n_embd)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         outs = [head(x) for head in self.heads]
         out = torch.cat(outs, dim=-1)
-        return self.proj(out)
+        return self.dropout(self.proj(out))
 
 
 class FeedForward(nn.Module):
-    def __init__(self, n_embd):
+    def __init__(self, n_embd, dropout):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(n_embd, n_embd), nn.ReLU())
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, n_embd), nn.ReLU(), nn.Dropout(dropout)
+        )
 
     def forward(self, x):
         return self.net(x)
 
 
 class Block(nn.Module):
-    def __init__(self, n_embd, num_heads, block_size):
+    def __init__(self, n_embd, num_heads, block_size, dropout):
         super().__init__()
-        self.sa = MultiHeadAttention(num_heads, n_embd // num_heads, n_embd, block_size)
-        self.ffwd = FeedForward(n_embd)
+        self.sa = MultiHeadAttention(
+            num_heads, n_embd // num_heads, n_embd, block_size, dropout
+        )
+        self.ffwd = FeedForward(n_embd, dropout)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
@@ -121,7 +126,7 @@ class Block(nn.Module):
 
 
 class Head(nn.Module):
-    def __init__(self, n_embd, head_size, block_size):
+    def __init__(self, n_embd, head_size, block_size, dropout):
         super().__init__()
 
         self.key = nn.Linear(n_embd, head_size, bias=False)
@@ -129,6 +134,7 @@ class Head(nn.Module):
         self.value = nn.Linear(n_embd, head_size, bias=False)
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
         self.head_size = head_size
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         _, T, _ = x.shape
@@ -139,16 +145,17 @@ class Head(nn.Module):
         scores = q @ k.transpose(-2, -1) * (self.head_size**-0.5)
         scores = scores.masked_fill(self.tril[:T, :T] == 0, float("-inf"))
         scores = F.softmax(scores, dim=-1)
+        scores = self.dropout(scores)
         return scores @ v
 
 
 class BigramLanguageModel(nn.Module):
-    def __init__(self, vocab_size, n_embd, block_size, num_heads, num_layers):
+    def __init__(self, vocab_size, n_embd, block_size, num_heads, num_layers, dropout):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(
-            *[Block(n_embd, num_heads, block_size) for _ in range(num_layers)]
+            *[Block(n_embd, num_heads, block_size, dropout) for _ in range(num_layers)]
         )
         self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
@@ -200,10 +207,13 @@ batch_size = 32
 n_embd = 64
 num_heads = 4
 num_layers = 4
+dropout = 0
 eval_iters = 200
 
 print("decode test:", decode(itos, encode(stoi, text)) == text)
-model = BigramLanguageModel(vocab_size, n_embd, block_size, num_heads, num_layers)
+model = BigramLanguageModel(
+    vocab_size, n_embd, block_size, num_heads, num_layers, dropout
+)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 x, y = get_batch(train_data, batch_size, block_size)
 logits, loss = model(x, y)
@@ -229,6 +239,7 @@ print("estimate_loss after training", el_after)
 
 
 # generate
+model.eval()
 idx = torch.zeros((1, 1), dtype=torch.long)
 generated = model.generate(idx, 300)
 decoded = decode(itos, generated[0].tolist())

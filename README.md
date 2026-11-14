@@ -15,7 +15,8 @@ streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
 F1–F4, F6 and F7 are working. Malformed output (a tool call written as text)
 and empty replies are retried; sending the error back to the model instead was
 not tried. **Phase 3 has started**: the same evals now run on `qwen2.5:3b` as well
-(see [RESULTS.md](RESULTS.md)), including `qwen3.5:9b` with thinking turned off.
+(see [RESULTS.md](RESULTS.md)), including `qwen3.5:9b` with thinking turned off. **Phase 4 (tiny transformer, in `phase4/`) works**: a character-level
+GPT trained on CPU reaches 1.77 validation loss (see [RESULTS.md](RESULTS.md)).
 
 ## Roadmap
 
@@ -150,6 +151,8 @@ curl http://localhost:11434/api/generate -d '{"model":"qwen3.5:9b","keep_alive":
 | `src/evals.ts` | Entry point for `npm run evals`: runs all cases and prints the summary |
 | `RESULTS.md` | Eval results and the model comparison table |
 | `FAILURES.md` | Known model/harness failures observed so far |
+| `phase4/bigram.py` | Tiny transformer (Python/PyTorch): tokenizer, batches, attention, blocks, training, generation |
+| `phase4/attention_demo.py` | Standalone self-attention demo |
 
 ## Notes for picking this up later
 - The default model is `qwen2.5:3b` (set in `ollama.ts`, override with `MODEL`). It is non-deterministic, so single runs prove little;
