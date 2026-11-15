@@ -11,7 +11,7 @@ const strictPrompt = 'when using the add tool,the user must give two input numbe
 const flexiblePrompt = 'when using the add tool,the user must give two input numbers, if the user did not provide two input numbers, ask the user for the missing input, a number can also come from an earlier tool result'
 const prompts: Record<string, string> = { 'qwen2.5:3b': flexiblePrompt, 'qwen2.5:3b-instruct-q8_0': flexiblePrompt }
 
-export const runAgent = async (userInput: string, onToken: (text: string) => void): Promise<RunResult> => {
+export const runAgent = async (userInput: string, onToken: (text: string) => void, runSignal?: AbortSignal): Promise<RunResult> => {
     const tools: ToolDefinition[] = buildToolsArray();
     const messages: Message[] = [
         { role: 'system', content: prompts[model] ?? strictPrompt },
@@ -31,7 +31,7 @@ export const runAgent = async (userInput: string, onToken: (text: string) => voi
             throw new Error(`Estimate tokens is larger than contextWindow, ${et}>${contextWindow}`)
         }
 
-        const cr: ChatResponse = await chatStream(trimmed, tools, onToken)
+        const cr: ChatResponse = await chatStream(trimmed, tools, onToken, runSignal)
 
         if (cr.eval_count) {
             allEvalCount += cr.eval_count

@@ -111,3 +111,15 @@ export const executeTool = (tc: ToolCall): string => {
 
     return `unknown tool ${name}`
 }
+
+export const resetTimer = (timer: NodeJS.Timeout | undefined, ctrl: AbortController, name: string, timeout: number): NodeJS.Timeout => {
+    if (timer) {
+        clearTimeout(timer)
+    }
+
+    timer = setTimeout(() => {
+        ctrl.abort(new DOMException(`${name} timeout`, `${name}TimeoutError`))
+    }, timeout)
+
+    return timer
+}

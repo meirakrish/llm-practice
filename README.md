@@ -10,13 +10,17 @@ the models themselves.
 
 ## Status
 
-**Phase 1 is done**: agent loop, tools, robustness, context management and
-streaming. **Phase 2 (evals) is in progress**: runner, report and cases for
-F1–F4, F6 and F7 are working. Malformed output (a tool call written as text)
-and empty replies are retried; sending the error back to the model instead was
-not tried. **Phase 3 has started**: the same evals now run on `qwen2.5:3b` as well
-(see [RESULTS.md](RESULTS.md)), including `qwen3.5:9b` with thinking turned off. **Phase 4 (tiny transformer, in `phase4/`) works**: a character-level
-GPT trained on CPU reaches 1.77 validation loss (see [RESULTS.md](RESULTS.md)).
+**Phases 1, 2 and 4 are done; Phase 3 is mostly done.**
+- **Phase 1:** agent loop, tools, robustness, context management and streaming.
+- **Phase 2:** runner, report and eval cases for F1–F4, F6 and F7 (F8 is covered by
+  `f4-sequencing`). Malformed output (a tool call written as text) and empty replies are
+  retried; sending the error back to the model instead was not tried.
+- **Phase 3:** `llama3.2:3b`, `qwen2.5:3b` and `qwen3.5:9b` (thinking off) compared, with a
+  prompt per model, quantization (Q4_K_M vs Q8_0), the context window and the sampling
+  temperature (see [RESULTS.md](RESULTS.md)). The comparison with an API model was skipped
+  (no API key).
+- **Phase 4** (tiny transformer, in `phase4/`): a character-level GPT trained on CPU reaches
+  1.77 validation loss, and what it showed is linked back to the harness (see RESULTS.md).
 
 ## Roadmap
 
@@ -38,18 +42,20 @@ Build the core agent loop by hand:
 Measure the harness instead of guessing:
 - [x] A small suite of tasks with clear success criteria (`src/cases.ts`)
 - [x] Track success rate, latency, and token usage (`npm run evals`)
-- [~] Compare the effect of prompt, tool-design, and model changes objectively
-  (done for the F1 prompt and the F3 float fix; model comparison is Phase 3)
+- [x] Compare the effect of prompt, tool-design, and model changes objectively
+  (the F1 prompt, the F3 float fix, the prompt per model for F8, temperature; the model
+  comparison is in Phase 3)
 
 Seed material: [FAILURES.md](FAILURES.md) logs observed failures, each written
 so it can become an eval case.
 
 ### Phase 3: Local models deep dive
 Run the same harness and evals across different models:
-- Compare small open models (via Ollama / llama.cpp) against each other
-  and against an API model
-- Explore tokenization, context limits, and quantization trade-offs
-- Measure how reliably each model calls tools
+- [~] Compare small open models (via Ollama / llama.cpp) against each other
+  and against an API model (open models done; the API model was skipped: no key)
+- [x] Explore context limits and quantization trade-offs, and how tokens are counted
+  (`npm run calibrate`); tokenization itself is built by hand in Phase 4
+- [x] Measure how reliably each model calls tools (see [RESULTS.md](RESULTS.md))
 
 ### Phase 4: Model internals
 Build a tiny transformer to understand what's inside the box:

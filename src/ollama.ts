@@ -1,5 +1,6 @@
 import { parseChatChunk, parseChatResponse } from './parse.js'
 import { readLines } from './stream.js';
+import { resetTimer } from './tools.js';
 import { type ChatChunk, type ChatResponse, type Message, type ToolCall, type ToolDefinition } from './types.js'
 
 const defaultModel = 'qwen2.5:3b' //"llama3.2:3b"
@@ -141,20 +142,9 @@ export const chat = async (messages: Message[], tools: ToolDefinition[]): Promis
     return cr
 }
 
-const resetTimer = (timer: NodeJS.Timeout | undefined, ctrl: AbortController): NodeJS.Timeout => {
-    if (timer) {
-        clearTimeout(timer)
-    }
-
-    timer = setTimeout(() => {
-        ctrl.abort(new DOMException('idle timeout', 'TimeoutError'))
-    }, idleTimeout)
-
-    return timer
-}
-export const chatStream = async (messages: Message[], tools: ToolDefinition[], onToken: (text: string) => void): Promise<ChatResponse> => {
+export const chatStream = async (messages: Message[], tools: ToolDefinition[], onToken: (text: string) => void, runSignal?: AbortSignal): Promise<ChatResponse> => {
     const ctrl: AbortController = new AbortController();
-    const signal: AbortSignal = ctrl.signal;
+    const signal: AbortSignal = runSignal ? AbortSignal.any([runSignal, ctrl.signal]) : ctrl.signal;
     const chunkToolCalls: ToolCall[] = []
     let timer: NodeJS.Timeout | undefined;
     let chunkContent = ''
@@ -162,14 +152,14 @@ export const chatStream = async (messages: Message[], tools: ToolDefinition[], o
 
     try {
         const options: RequestInit = { ...buildRequest(messages, tools, true), signal }
-        timer = resetTimer(timer, ctrl)
+        timer = resetTimer(timer, ctrl, 'idle', idleTimeout)
         const response: Response = await fetchWithRetry(url, options, 5)
         if (!response.body) {
             throw new Error("response body is not defined")
         }
 
         for await (const chunk of readLines(response.body)) {
-            timer = resetTimer(timer, ctrl)
+            timer = resetTimer(timer, ctrl, 'idle', idleTimeout)
             const data: unknown = JSON.parse(chunk);
             const chatChunk = parseChatChunk(data)
 
@@ -188,7 +178,9 @@ export const chatStream = async (messages: Message[], tools: ToolDefinition[], o
             }
         }
     } finally {
-        clearTimeout(timer)
+        if (timer) {
+            clearTimeout(timer)
+        }
     }
 
     if (!lastChunk) {
