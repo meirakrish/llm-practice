@@ -66,7 +66,7 @@ Format: **Input** → **Observed** → **Expected** → **Status**
 - **Observed:** with the original terse error ("needs numeric a and b"), the
   model concluded the user had not given numbers and asked for them.
 - **Status:** mitigated by a more explicit error message that includes what
-  was sent.
+  was sent. No eval case yet.
 
 ### F6: writes the tool call as plain text
 - **Input:** `what is 222.222 + 555.555 ?`

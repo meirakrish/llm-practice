@@ -171,3 +171,40 @@ train/val split). AdamW, lr 1e-3, batch 32, 10,000 steps. Loss is the average ov
   (about 200k parameters, 10,000 steps), so there was no memorizing to prevent.
   `dropout` stays in the code, set to 0.0.
 - Not tried: longer training, a bigger model (needs a GPU), a learning-rate schedule.
+
+## Phase 4 and the harness
+Three things the tiny transformer (`phase4/`) explained about phases 1-3.
+
+**1. A context limit is built into the model.** With the crop in `generate` removed
+(`idx_cond = idx`), the model crashed at the 33rd generated character:
+`IndexError: index out of range` in the position table, which has `block_size` = 32
+rows (the attention mask is also 32x32). A model has no position 33. Ollama handled
+the same limit by truncating silently, so the model just saw less and looked dumber
+(the cliff between `NUM_CTX` 256 and 384). That is why `runAgent` throws when the
+estimated prompt is larger than the window: the model will not say it ran out of room.
+
+**2. Sampling is the source of eval variance.** `generate` samples the next character
+(`torch.multinomial`); dividing the scores by `temperature` before the softmax changes how
+random it is (0.2 repeats itself, 1.5 is noise). Ollama has the same setting. `TEMPERATURE`
+now sets it in the harness (unset = Ollama's default, 0.8). Result on `qwen2.5:3b`, 3 batches
+of 20 per setting:
+
+| case | default (3 batches) | pooled | temperature 0 (3 batches) | pooled |
+|---|---|---|---|---|
+| f1-no-args | 18, 19, 16 /20 | 53/60 = 88% | 20, 20, 20 /20 | 60/60 = 100% |
+| all other cases | 20/20 every batch | 100% | 20/20 every batch | 100% |
+
+- The `f1` failures at the default are `add` calls with invented arguments: the top
+  choice (ask for the numbers) is right, and sampling sometimes picks the wrong branch.
+- At temperature 0 the same input gives (almost) the same output, so the 20 runs are
+  about 1 sample repeated. Token averages were identical across batches (49, 48, 68, 106);
+  one `f1` batch averaged 53, so it is not perfectly deterministic.
+- Use temperature 0 to ask "does the best answer pass?" (compares prompts without noise,
+  one run is enough). Use the default to ask "how often does sampling break it?" (needs
+  many runs). Earlier prompt/model comparisons in this file ran at the default.
+
+**3. Average before you compare.** The loss of a single batch varied by 0.3 for the same
+untrained model, as eval rates vary between batches of 20. A change smaller than the
+batch-to-batch spread proves nothing. A fix only helps if you have the problem it fixes:
+dropout made val loss worse because the model was underfitting, as a longer prompt does
+not help a model that fails for another reason.
