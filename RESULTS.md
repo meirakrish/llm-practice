@@ -144,3 +144,30 @@ result"). `prompts` in `src/agent.ts` maps a model to its prompt; the default is
 - Read the `failures` list, not just the rate.
 - Keep the check fixed when comparing prompts or models.
 - The first case in a run pays the model's load time (inflated latency).
+
+## Phase 4: tiny transformer (`phase4/bigram.py`)
+Character-level model on tiny Shakespeare (65 characters, 1.1M characters, 90/10
+train/val split). AdamW, lr 1e-3, batch 32, 10,000 steps. Loss is the average over
+200 batches (`estimate_loss`), CPU only. Context 8 and 32 numbers per character until
+"scale up".
+
+| step | train | val |
+|---|---|---|
+| bigram (single-batch loss, no val) | ~2.5 | n/a |
+| + one head + position embedding | 2.343 | 2.377 |
+| + 4 heads | 2.179 | 2.246 |
+| + feed-forward | 2.162 | 2.218 |
+| + 4 blocks with residuals | 1.964 | 2.052 |
+| + LayerNorm | 1.962 | 2.047 |
+| scale up (context 32, 64 numbers) | **1.594** | **1.768** |
+| scale up + dropout 0.1 | 1.661 | 1.817 |
+| scale up + dropout 0.2 | 1.720 | 1.870 |
+
+- A single batch's loss is noisy (the same model printed 4.5 to 4.8 before training), so
+  measure with the average over many batches.
+- Stacking blocks without LayerNorm started at loss 5.5 (random guessing is 4.17);
+  with LayerNorm it started at 4.30 again, but the final loss barely changed.
+- Dropout made val worse (more dropout, worse val). The model was still underfitting
+  (about 200k parameters, 10,000 steps), so there was no memorizing to prevent.
+  `dropout` stays in the code, set to 0.0.
+- Not tried: longer training, a bigger model (needs a GPU), a learning-rate schedule.
