@@ -30,6 +30,7 @@ npm run calibrate           # compare estimated vs real prompt tokens
 npm run evals               # run all eval cases 20x each, print summary (needs Ollama)
 NUM_CTX=512 npm run evals   # smaller context window (default 4096)
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model (default qwen2.5:3b)
+TEMPERATURE=0 npm run evals   # sampling temperature (unset = Ollama's default, 0.8)
 npm test                    # node:test via tsx
 npx tsc --noEmit            # type-check
 
@@ -97,5 +98,8 @@ cd phase4 && source .venv/bin/activate && python bigram.py   # ~4 min on CPU
 - `contextWindow` comes from `NUM_CTX` (default 4096). `runAgent` throws if the estimated
   prompt is larger than the window: Ollama would otherwise truncate silently and the
   model would just look worse (see `RESULTS.md`).
+- `temperature` comes from `TEMPERATURE` (unset: not sent, Ollama uses its default). At 0 the
+  runs are nearly identical, so N=20 is about one sample: use it to compare prompts, use the
+  default to measure how often sampling breaks a case (see `RESULTS.md`, Phase 4 and the harness).
 - The system prompt must stay a single message at index 0 (`trimMessages` protects
   indexes 0 and 1).

@@ -181,11 +181,12 @@ class BigramLanguageModel(nn.Module):
 
         return logits, loss
 
-    def generate(self, idx, max_new_tokens):
+    def generate(self, idx, max_new_tokens, temperature=1):
         for i in range(max_new_tokens):
             idx_cond = idx[:, -self.block_size :]
             logits, loss = self(idx_cond)
             last_pos_score = logits[:, -1, :]
+            last_pos_score = last_pos_score / temperature
             probs = F.softmax(last_pos_score, dim=-1)
             new_id = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, new_id), dim=1)
@@ -241,6 +242,10 @@ print("estimate_loss after training", el_after)
 # generate
 model.eval()
 idx = torch.zeros((1, 1), dtype=torch.long)
-generated = model.generate(idx, 300)
-decoded = decode(itos, generated[0].tolist())
-print("generated:", decoded)
+
+
+for temp in [0.2, 1, 1.5]:
+    generated = model.generate(idx, 300, temp)
+    decoded = decode(itos, generated[0].tolist())
+    print("temp", temp, "generated:", decoded)
+# generated = model.generate(idx, 300)

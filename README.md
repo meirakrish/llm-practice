@@ -58,7 +58,9 @@ Build a tiny transformer to understand what's inside the box:
   with residuals and LayerNorm, loss, training, sampling)
 - [x] Train a small model on a toy dataset (tiny Shakespeare, 1.77 val loss on CPU;
   every step is measured in [RESULTS.md](RESULTS.md))
-- [ ] Connect what's learned back to the harness behavior seen in phases 1–3
+- [x] Connect what's learned back to the harness behavior seen in phases 1–3
+  (hard context limit vs silent truncation, sampling and temperature as eval variance,
+  averaging; see [RESULTS.md](RESULTS.md), "Phase 4 and the harness")
 
 ## Non-goals
 - Being a production framework
@@ -86,6 +88,7 @@ npm run calibrate           # compares estimated vs real prompt tokens
 npm run evals               # runs every eval case 20 times and prints a summary (needs Ollama)
 NUM_CTX=512 npm run evals          # same, with a smaller context window (default 4096)
 MODEL=llama3.2:3b npm run evals   # same, with another Ollama model
+TEMPERATURE=0 npm run evals          # same, with sampling temperature 0 (default: Ollama's 0.8)
 npm test                    # unit tests (Node's built-in test runner)
 npx tsc --noEmit            # type-check; tsx does not do this for you
 ```
